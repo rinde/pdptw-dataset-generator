@@ -11,7 +11,7 @@
     <factorypathentry kind="VARJAR" id="M2_REPO/org/javolution/javolution/5.2.3/javolution-5.2.3.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/com/github/rinde/rinsim-event/4.0.0-SNAPSHOT/rinsim-event-4.0.0-SNAPSHOT.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/com/github/rinde/rinsim-ui/4.0.0-SNAPSHOT/rinsim-ui-4.0.0-SNAPSHOT.jar" enabled="true" runInBatchMode="false"/>
-    <factorypathentry kind="VARJAR" id="M2_REPO/org/eclipse/swt/org.eclipse.swt.gtk.linux.x86_64/4.4/org.eclipse.swt.gtk.linux.x86_64-4.4.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/eclipse/swt/org.eclipse.swt.gtk.linux.x86_64/4.4/org.eclipse.swt.gtk.linux.x86_64-4.4.jar" enabled="false" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/com/github/rinde/rinsim-test-util/4.0.0-SNAPSHOT/rinsim-test-util-4.0.0-SNAPSHOT-tests.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/com/github/rinde/rinsim-fsm/4.0.0-SNAPSHOT/rinsim-fsm-4.0.0-SNAPSHOT.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/com/github/rinde/rinsim-geom/4.0.0-SNAPSHOT/rinsim-geom-4.0.0-SNAPSHOT.jar" enabled="true" runInBatchMode="false"/>
