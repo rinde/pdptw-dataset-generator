@@ -15,9 +15,12 @@
  */
 package com.github.rinde.dataset;
 
+import static com.google.common.truth.Truth.assertThat;
 import static java.util.Arrays.asList;
 
 import org.junit.Test;
+
+import com.github.rinde.rinsim.scenario.Scenario;
 
 /**
  * @author Rinde van Lon
@@ -26,13 +29,37 @@ import org.junit.Test;
 public class DatasetGeneratorTest {
 
   @Test
-  public void test() {
+  public void testSetDynamismLevels() {
 
-    System.out.println(DatasetGenerator.builder().setDynamismLevels(
-      asList(.10, .12)).dynamismLevels);
-
-    DatasetGenerator.builder().setDynamismLevels(asList(.1, .11));
+    boolean fail = false;
+    try {
+      DatasetGenerator.builder().setDynamismLevels(asList(.1, .11));
+    } catch (final IllegalArgumentException e) {
+      assertThat(e.getMessage()).containsMatch("too close");
+      fail = true;
+    }
+    assertThat(fail).isTrue();
 
   }
 
+  @Test
+  public void test() {
+    final DatasetGenerator gen = DatasetGenerator.builder()
+      .setDynamismLevels(asList(.3, .52))
+      .setUrgencyLevels(asList(15L))
+      .setScaleLevels(asList(1d))
+      .setNumInstances(10)
+      .build();
+
+    final Dataset<Scenario> scen = gen.generate();
+
+    final Dataset<Scenario> scen2 = gen.generate();
+
+    System.out.println(scen.size());
+    System.out.println(scen2.size());
+
+    assertThat(scen).isEqualTo(scen2);
+
+    // System.out.println(Iterators.toString(scen.iterator()));
+  }
 }

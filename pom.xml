@@ -40,7 +40,7 @@
 					<target>1.7</target>
 				</configuration>
 			</plugin>
-
+			
 			<!-- license -->
 			<plugin>
 				<groupId>com.mycila</groupId>
