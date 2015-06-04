@@ -18,8 +18,14 @@ package com.github.rinde.dataset;
 import static com.github.rinde.rinsim.util.StochasticSuppliers.constant;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verifyNotNull;
+import static java.util.Arrays.asList;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -40,6 +46,8 @@ import javax.measure.unit.SI;
 
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import com.github.rinde.rinsim.core.model.pdp.DefaultPDPModel;
 import com.github.rinde.rinsim.core.model.pdp.Parcel;
@@ -51,6 +59,7 @@ import com.github.rinde.rinsim.pdptw.common.PDPRoadModel;
 import com.github.rinde.rinsim.pdptw.common.StatsStopConditions;
 import com.github.rinde.rinsim.scenario.Scenario;
 import com.github.rinde.rinsim.scenario.Scenario.ProblemClass;
+import com.github.rinde.rinsim.scenario.ScenarioIO;
 import com.github.rinde.rinsim.scenario.StopConditions;
 import com.github.rinde.rinsim.scenario.generator.Depots;
 import com.github.rinde.rinsim.scenario.generator.IntensityFunctions;
@@ -63,16 +72,22 @@ import com.github.rinde.rinsim.scenario.generator.TimeSeries;
 import com.github.rinde.rinsim.scenario.generator.TimeSeries.TimeSeriesGenerator;
 import com.github.rinde.rinsim.scenario.generator.TimeWindows.TimeWindowGenerator;
 import com.github.rinde.rinsim.scenario.generator.Vehicles;
+import com.github.rinde.rinsim.scenario.measure.Metrics;
+import com.github.rinde.rinsim.scenario.measure.MetricsIO;
 import com.github.rinde.rinsim.util.StochasticSupplier;
 import com.github.rinde.rinsim.util.StochasticSuppliers;
 import com.github.rinde.rinsim.util.TimeWindow;
 import com.google.auto.value.AutoValue;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.RangeSet;
@@ -138,8 +153,6 @@ public class DatasetGenerator {
       for (final Double scale : builder.scaleLevels) {
         for (final Entry<TimeSeriesType, Collection<Range<Double>>> dynLevel : builder.dynamismLevels
           .asMap().entrySet()) {
-
-          System.out.println(dynLevel);
 
           final int reps = builder.numInstances * dynLevel.getValue().size();
 
@@ -285,27 +298,99 @@ public class DatasetGenerator {
     }
   }
 
-  static Dataset<Scenario> convert(Dataset<GeneratedScenario> input) {
+  Dataset<Scenario> convert(Dataset<GeneratedScenario> input) {
     final Dataset<Scenario> data = Dataset
       .orderedBy(ScenarioComparator.INSTANCE);
     for (final GeneratedScenario gs : input) {
       final GeneratorSettings settings = gs.getSettings();
 
-      final double d = 0d;
+      final double dyn = gs.getDynamismBin();
+      final long urg = settings.getUrgency() / 60000;
+      final double scl = settings.getScale();
 
-      final int cur = data.get(d, settings.getUrgency(), settings.getScale())
-        .size();
-      final ProblemClass pc = VanLon15ProblemClass.create(d,
-        settings.getUrgency(), settings.getScale());
+      final int cur = data.get(dyn, urg, scl).size();
+      final ProblemClass pc = VanLon15ProblemClass.create(dyn, urg, scl);
       final Scenario finalScenario = Scenario.builder(pc)
         .copyProperties(gs.getScenario())
         .problemClass(pc)
         .instanceId(Integer.toString(cur))
         .build();
 
-      data.put(d, settings.getUrgency(), settings.getScale(), finalScenario);
+      if (builder.datasetDir.getNameCount() > 0) {
+        writeScenario(finalScenario, gs.getActualDynamism(), gs.getSeed(),
+          settings);
+      }
+
+      data.put(dyn, urg, scl, finalScenario);
     }
     return data;
+  }
+
+  void writeScenario(Scenario s, double actualDyn, long seed,
+    GeneratorSettings set) {
+
+    final String instanceId = s.getProblemInstanceId();
+    final Path filePath = Paths.get(builder.datasetDir.toString(),
+      s.getProblemClass().getId() + "-" + instanceId);
+
+    try {
+      Files.createDirectories(builder.datasetDir);
+
+      writePropertiesFile(s, set, actualDyn, seed, filePath.toString());
+      MetricsIO.writeLocationList(Metrics.getServicePoints(s),
+        new File(filePath.toString() + ".points"));
+      MetricsIO.writeTimes(s.getTimeWindow().end,
+        Metrics.getArrivalTimes(s),
+        new File(filePath.toString() + ".times"));
+
+      ScenarioIO.write(s,
+        new File(filePath.toString() + ".scen").toPath());
+
+    } catch (final IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  static void writePropertiesFile(Scenario scen,
+    GeneratorSettings settings, double actualDyn, long seed, String fileName) {
+    final DateTimeFormatter formatter = ISODateTimeFormat
+      .dateHourMinuteSecondMillis();
+
+    final VanLon15ProblemClass pc = (VanLon15ProblemClass) scen
+      .getProblemClass();
+    final ImmutableMap.Builder<String, Object> properties = ImmutableMap
+      .<String, Object> builder()
+      .put("problem_class", pc.getId())
+      .put("id", scen.getProblemInstanceId())
+      .put("dynamism_bin", pc.getDynamism())
+      .put("dynamism_actual", actualDyn)
+      .put("urgency", pc.getUrgency())
+      .put("scale", pc.getScale())
+      .put("random_seed", seed)
+      // .put("urgency_mean", urgency.getMean())
+      // .put("urgency_sd", urgency.getStandardDeviation())
+      .put("creation_date", formatter.print(System.currentTimeMillis()))
+      .put("creator", System.getProperty("user.name"))
+      .put("day_length", settings.getDayLength())
+      .put("office_opening_hours", settings.getOfficeHours());
+
+    properties.putAll(settings.getProperties());
+
+    final ImmutableMultiset<Class<?>> eventTypes = Metrics
+      .getEventTypeCounts(scen);
+    for (final Multiset.Entry<Class<?>> en : eventTypes.entrySet()) {
+      properties.put(en.getElement().getSimpleName(), en.getCount());
+    }
+
+    try {
+      Files.write(
+        Paths.get(fileName + ".properties"),
+        asList(Joiner.on("\n").withKeyValueSeparator(" = ")
+          .join(properties.build())),
+        Charsets.UTF_8);
+    } catch (final IOException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   static void submitJob(final AtomicLong currentJobs,
@@ -337,7 +422,6 @@ public class DatasetGenerator {
           return;
         }
         final GeneratedScenario res = verifyNotNull(result);
-        System.out.println("ok");
         if (dataset.get(res.getDynamismBin(),
           res.getSettings().getUrgency(),
           res.getSettings().getScale()).size() < numInstances) {
@@ -348,10 +432,6 @@ public class DatasetGenerator {
             res.getSettings().getScale(),
             res);
         } else {
-          System.out.println("we already have enough of: "
-            + res.getDynamismBin() + " "
-            + res.getSettings().getTimeSeriesType());
-
           // TODO check if this job should be respawned by seeing if it uses the
           // correct TSG
 
@@ -382,20 +462,11 @@ public class DatasetGenerator {
             }
           }
         }
-
-        // result.
-
-        // dataset.put(job.getDynamism(), job.getUrgency(), job.getScale(),
-        // verifyNotNull(result));
       }
 
       @Override
       public void onFailure(Throwable t) {
         throw new IllegalStateException(t);
-        // System.err.println("fail: " + t);
-        // t.printStackTrace();
-        // add new job (or perhaps 2, to increase odds?)
-
       }
     }, MoreExecutors.directExecutor());
   }
@@ -406,9 +477,17 @@ public class DatasetGenerator {
 
     final double numPeriods = officeHoursLength / (double) INTENSITY_PERIOD;
     if (type == TimeSeriesType.POISSON_SINE) {
-      props.put("time_series", "sine Poisson ");
-      props.put("time_series.period", Long.toString(INTENSITY_PERIOD));
-      props.put("time_series.num_periods", Double.toString(numPeriods));
+      props.put("time_series", "non-homogenous (sine) Poisson process");
+      props.put("time_series.sine.period", Long.toString(INTENSITY_PERIOD));
+      props.put("time_series.sine.num_periods", Double.toString(numPeriods));
+
+      final double heightL = -.99;
+      final double heightU = 3d;
+      props
+        .put("time_series.sine.height", "U(" + heightL + "," + heightU + ")");
+
+      props.put("time_series.sine.phase_shitft", "U(0," + INTENSITY_PERIOD
+        + ")");
 
       final TimeSeriesGenerator sineTsg = TimeSeries.nonHomogenousPoisson(
         officeHoursLength,
@@ -416,30 +495,47 @@ public class DatasetGenerator {
           .sineIntensity()
           .area(numOrders / numPeriods)
           .period(INTENSITY_PERIOD)
-          .height(StochasticSuppliers.uniformDouble(-.99, 3d))
+          .height(StochasticSuppliers.uniformDouble(heightL, heightU))
           .phaseShift(
             StochasticSuppliers.uniformDouble(0, INTENSITY_PERIOD))
           .buildStochasticSupplier());
       return sineTsg;
     } else if (type == TimeSeriesType.POISSON_HOMOGENOUS) {
-      props.put("time_series", "homogenous Poisson");
+      props.put("time_series", "homogenous Poisson process");
       props.put("time_series.intensity",
         Double.toString((double) NUM_ORDERS / (double) officeHoursLength));
       return TimeSeries.homogenousPoisson(officeHoursLength, numOrders);
     } else if (type == TimeSeriesType.NORMAL) {
-      props.put("time_series", "normal");
-      return TimeSeries.normal(officeHoursLength, numOrders, 2.4 * 60 * 1000);
+      props.put("time_series", "normal distribution");
+      final double mean = officeHoursLength / numOrders;
+      final double sd = 2.4 * 60 * 1000;
+      props.put("time_series.normal", "U(" + mean + "," + sd + ")");
+      props.put("time_series.normal.truncated", "t > 0");
+      return TimeSeries.normal(officeHoursLength, numOrders, sd);
     } else if (type == TimeSeriesType.UNIFORM) {
-      props.put("time_series", "uniform");
+      props.put("time_series", "uniform distribution");
+
+      final double mean = 1 * 60 * 1000;
+      final double std = 1 * 60 * 1000;
+      final double lb = 0;
+      final double ub = 15d * 60 * 1000;
+
+      props.put("time_series.uniform.mean",
+        Double.toString(officeHoursLength / numOrders));
+      props.put("time_series.uniform.truncated", "t > 0");
+      props.put("time_series.uniform.max_dev", "N(" + mean + "," + std + ")");
+      props.put("time_series.uniform.max_dev.lower_bound", Double.toString(lb));
+      props.put("time_series.uniform.max_dev.upper_bound", Double.toString(ub));
+      props.put("time_series.uniform.max_dev.out_of_bounds_strategy", "redraw");
       final StochasticSupplier<Double> maxDeviation = StochasticSuppliers
         .normal()
-        .mean(1 * 60 * 1000)
-        .std(1 * 60 * 1000)
-        .lowerBound(0)
-        .upperBound(15d * 60 * 1000)
+        .mean(mean)
+        .std(std)
+        .lowerBound(lb)
+        .upperBound(ub)
+        .redrawWhenOutOfBounds()
         .buildDouble();
-      return TimeSeries.uniform(
-        officeHoursLength, numOrders, maxDeviation);
+      return TimeSeries.uniform(officeHoursLength, numOrders, maxDeviation);
     }
     throw new IllegalStateException();
   }
@@ -485,6 +581,7 @@ public class DatasetGenerator {
     ImmutableSet<Long> urgencyLevels;
     int numInstances;
     int numThreads;
+    Path datasetDir;
 
     Builder() {
       randomSeed = 0L;
@@ -495,6 +592,7 @@ public class DatasetGenerator {
       urgencyLevels = ImmutableSet.of(20L);
       numInstances = 1;
       numThreads = Runtime.getRuntime().availableProcessors();
+      datasetDir = Paths.get("/");
     }
 
     public Builder setRandomSeed(long seed) {
@@ -579,6 +677,11 @@ public class DatasetGenerator {
 
     public Builder setNumThreads(int i) {
       numThreads = i;
+      return this;
+    }
+
+    public Builder setDatasetDir(String string) {
+      datasetDir = Paths.get(string);
       return this;
     }
   }

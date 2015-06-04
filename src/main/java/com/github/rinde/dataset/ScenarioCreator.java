@@ -52,10 +52,9 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
 
     // check that urgency matches expected urgency
     final StatisticalSummary urgency = Metrics.measureUrgency(scen);
-    final long expectedUrgency = getSettings().getUrgency();// * 60000L;
+    final long expectedUrgency = getSettings().getUrgency();
     if (!(Math.abs(urgency.getMean() - expectedUrgency) < 0.01
     && urgency.getStandardDeviation() < 0.01)) {
-      System.out.println("urgency fail");
       return null;
     }
 
@@ -63,7 +62,6 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
     final int numParcels = Metrics.getEventTypeCounts(scen).count(
       AddParcelEvent.class);
     if (numParcels != getSettings().getNumOrders()) {
-      System.out.println("orders fail");
       return null;
     }
 
@@ -74,10 +72,6 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
     final Double dynamismBin = getSettings().getDynamismRangeCenters().get(
       dynamism);
     if (dynamismBin == null) {
-      if (getId() == 44L || getId() == 52L || getId() == 56L) {
-        System.out.println(getId() + " dynamism fail " + dynamism + " "
-          + getSettings().getDynamismRangeCenters());
-      }
       return null;
     }
     return GeneratedScenario.create(scen, getSettings(), getId(), getSeed(),

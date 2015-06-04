@@ -18,11 +18,33 @@ package com.github.rinde.dataset;
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.Arrays.asList;
 
-import java.util.Iterator;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.junit.Test;
 
+import com.github.rinde.logistics.pdptw.mas.VehicleHandler;
+import com.github.rinde.logistics.pdptw.mas.comm.AuctionCommModel;
+import com.github.rinde.logistics.pdptw.mas.comm.SolverBidder;
+import com.github.rinde.logistics.pdptw.mas.route.SolverRoutePlanner;
+import com.github.rinde.logistics.pdptw.solver.CheapestInsertionHeuristic;
+import com.github.rinde.rinsim.central.SolverModel;
+import com.github.rinde.rinsim.experiment.Experiment;
+import com.github.rinde.rinsim.experiment.MASConfiguration;
+import com.github.rinde.rinsim.pdptw.common.AddVehicleEvent;
+import com.github.rinde.rinsim.pdptw.common.ObjectiveFunction;
+import com.github.rinde.rinsim.pdptw.common.TimeLinePanel;
 import com.github.rinde.rinsim.scenario.Scenario;
+import com.github.rinde.rinsim.scenario.ScenarioIO;
+import com.github.rinde.rinsim.scenario.gendreau06.Gendreau06ObjectiveFunction;
+import com.github.rinde.rinsim.ui.View;
+import com.github.rinde.rinsim.ui.renderers.PDPModelRenderer;
+import com.github.rinde.rinsim.ui.renderers.PlaneRoadModelRenderer;
+import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
 
 /**
  * @author Rinde van Lon
@@ -47,53 +69,37 @@ public class DatasetGeneratorTest {
   @Test
   public void test() {
     final DatasetGenerator gen = DatasetGenerator.builder()
-      .setDynamismLevels(asList(.1, .3, .5, .7, .9))
-      .setUrgencyLevels(asList(5L, 15L, 30L, 45L))
-      .setScaleLevels(asList(1d, 2d, 5d, 10d))
-      .setNumInstances(50)
+      .setDynamismLevels(asList(.1, .5, .6, .7))
+      .setUrgencyLevels(asList(15L))
+      .setScaleLevels(asList(1d))
+      .setNumInstances(1)
+      .setDatasetDir("files/dataset/")
       // .setNumThreads(1)
       .build();
 
     final Dataset<GeneratedScenario> scen = gen.generate();
-
     final Dataset<GeneratedScenario> scen2 = gen.generate();
 
-    System.out.println(scen.size());
-    System.out.println(scen2.size());
-    System.out.println(toString(scen));
-    System.out.println(toString(scen2));
-    System.out.println(toSeedString(scen));
-    System.out.println(toSeedString(scen2));
-
-    final Dataset<Scenario> conv1 = DatasetGenerator.convert(scen);
-    final Dataset<Scenario> conv2 = DatasetGenerator.convert(scen2);
-
-    final Iterator<GeneratedScenario> it1 = scen.iterator();
-    final Iterator<GeneratedScenario> it2 = scen2.iterator();
-
-    while (it1.hasNext()) {
-
-      final GeneratedScenario s1 = it1.next();
-      final GeneratedScenario s2 = it2.next();
-
-      assertThat(s1.getScenario().getEvents()).isEqualTo(
-        s2.getScenario().getEvents());
-      assertThat(s1.getScenario()).isEqualTo(s2.getScenario());
-
-      assertThat(s1).isEqualTo(s2);
-
-    }
+    final Dataset<Scenario> conv1 = gen.convert(scen);
+    final Dataset<Scenario> conv2 = gen.convert(scen2);
 
     assertThat(scen).isEqualTo(scen2);
-
     assertThat(conv1).isEqualTo(conv2);
 
-    // System.out.println(Iterators.toString(scen.iterator()));
-    //
-    // 9, 68, 126, 151, 164, 243, 276, 279, 286, 289, 12, 13, 15, 17, 19, 28,
-    // 29, 44, 83, 100,
-    // 9, 68, 126, 151, 164, 243, 276, 279, 286, 289, 12, 13, 15, 17, 19, 28,
-    // 29, 44, 52, 55,
+  }
+
+  // @Test
+  public void test2() {
+    try (final DirectoryStream<Path> directoryStream = Files
+      .newDirectoryStream(Paths.get("files/dataset/"), "*.scen")) {
+
+      for (final Path path : directoryStream) {
+        System.out.println(path);
+        run(path.toString());
+      }
+    } catch (final IOException ex) {
+      ex.printStackTrace();
+    }
   }
 
   static String toString(Dataset<GeneratedScenario> data) {
@@ -110,5 +116,48 @@ public class DatasetGeneratorTest {
       sb.append(scen.getSeed() + ", ");
     }
     return sb.toString();
+  }
+
+  private static void run(final String fileName) {
+    final Scenario scen;
+    try {
+      scen = ScenarioIO.read(new File(fileName).toPath());
+    } catch (final IOException e) {
+      throw new IllegalStateException(e);
+    }
+    final ObjectiveFunction objFunc = Gendreau06ObjectiveFunction.instance();
+    Experiment
+      .build(Gendreau06ObjectiveFunction.instance())
+      .addScenario(scen)
+      .addConfiguration(MASConfiguration.pdptwBuilder()
+        .addEventHandler(AddVehicleEvent.class, new VehicleHandler(
+          SolverRoutePlanner.supplier(
+            CheapestInsertionHeuristic.supplier(objFunc)),
+          SolverBidder.supplier(objFunc,
+            CheapestInsertionHeuristic.supplier(objFunc))
+          )
+        )
+        .addModel(AuctionCommModel.builder())
+        .addModel(SolverModel.builder())
+        .build()
+      )
+      .withThreads(1)
+      .showGui(
+        // schema.add(Vehicle.class, SWT.COLOR_RED);
+        // schema.add(Depot.class, SWT.COLOR_CYAN);
+        // schema.add(Parcel.class, SWT.COLOR_BLUE);
+        View.builder()
+          .with(PlaneRoadModelRenderer.builder())
+          .with(RoadUserRenderer.builder()
+          // .withColorAssociation(Vehicle.class, SWT.COLOR_RED)
+          )
+          .with(PDPModelRenderer.builder())
+          .with(TimeLinePanel.builder())
+          .withTitleAppendix(fileName)
+          .withAutoPlay()
+          .withAutoClose()
+          .withSpeedUp(80)
+      )
+      .perform();
   }
 }
