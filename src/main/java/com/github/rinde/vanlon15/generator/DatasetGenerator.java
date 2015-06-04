@@ -138,7 +138,11 @@ public class DatasetGenerator {
     builder = b;
   }
 
-  Dataset<GeneratedScenario> generate() {
+  public Dataset<Scenario> generate() {
+    return convert(doGenerate());
+  }
+
+  Dataset<GeneratedScenario> doGenerate() {
 
     final ListeningExecutorService service = MoreExecutors
       .listeningDecorator(Executors.newFixedThreadPool(builder.numThreads));
@@ -565,7 +569,7 @@ public class DatasetGenerator {
     return new Builder();
   }
 
-  static class Builder {
+  public static class Builder {
     static final ImmutableRangeMap<Double, TimeSeriesType> DYNAMISM_MAP =
       ImmutableRangeMap.<Double, TimeSeriesType> builder()
         .put(Range.closedOpen(0.000, 0.475), TimeSeriesType.POISSON_SINE)

@@ -78,8 +78,8 @@ public class DatasetGeneratorTest {
       // .setNumThreads(1)
       .build();
 
-    final Dataset<GeneratedScenario> scen = gen.generate();
-    final Dataset<GeneratedScenario> scen2 = gen.generate();
+    final Dataset<GeneratedScenario> scen = gen.doGenerate();
+    final Dataset<GeneratedScenario> scen2 = gen.doGenerate();
 
     final Dataset<Scenario> conv1 = gen.convert(scen);
     final Dataset<Scenario> conv2 = gen.convert(scen2);
