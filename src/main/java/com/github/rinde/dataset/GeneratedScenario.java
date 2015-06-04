@@ -31,6 +31,8 @@ abstract class GeneratedScenario implements Comparable<GeneratedScenario> {
 
   public abstract long getId();
 
+  public abstract long getSeed();
+
   public abstract double getDynamismBin();
 
   public abstract double getActualDynamism();
@@ -40,8 +42,14 @@ abstract class GeneratedScenario implements Comparable<GeneratedScenario> {
     return Long.compare(getId(), verifyNotNull(scen).getId());
   }
 
+  @Override
+  public String toString() {
+    return "(" + getId() + "/" + getSeed() + ")";
+  }
+
   static GeneratedScenario create(Scenario s, GeneratorSettings settings,
-    long id, double dynBin, double actDyn) {
-    return new AutoValue_GeneratedScenario(s, settings, id, dynBin, actDyn);
+    long id, long seed, double dynBin, double actDyn) {
+    return new AutoValue_GeneratedScenario(s, settings, id, seed, dynBin,
+      actDyn);
   }
 }

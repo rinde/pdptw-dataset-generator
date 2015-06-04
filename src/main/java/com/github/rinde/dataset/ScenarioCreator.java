@@ -23,6 +23,7 @@ import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 
+import com.github.rinde.dataset.DatasetGenerator.IdSeed;
 import com.github.rinde.rinsim.pdptw.common.AddParcelEvent;
 import com.github.rinde.rinsim.scenario.Scenario;
 import com.github.rinde.rinsim.scenario.generator.ScenarioGenerator;
@@ -34,6 +35,8 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
 
   public abstract long getId();
 
+  public abstract long getSeed();
+
   public abstract GeneratorSettings getSettings();
 
   public abstract ScenarioGenerator getGenerator();
@@ -41,7 +44,7 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
   @Nullable
   @Override
   public GeneratedScenario call() throws Exception {
-    final RandomGenerator rng = new MersenneTwister(getSettings().getSeed());
+    final RandomGenerator rng = new MersenneTwister(getSeed());
     final Scenario scen = getGenerator().generate(rng,
       Long.toString(getId()));
 
@@ -77,12 +80,13 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
       }
       return null;
     }
-    return GeneratedScenario.create(scen, getSettings(), getId(), dynamismBin,
+    return GeneratedScenario.create(scen, getSettings(), getId(), getSeed(),
+      dynamismBin,
       dynamism);
   }
 
-  static ScenarioCreator create(long id, GeneratorSettings set,
+  static ScenarioCreator create(IdSeed is, GeneratorSettings set,
     ScenarioGenerator gen) {
-    return new AutoValue_ScenarioCreator(id, set, gen);
+    return new AutoValue_ScenarioCreator(is.getId(), is.getSeed(), set, gen);
   }
 }

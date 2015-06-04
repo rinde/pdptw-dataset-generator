@@ -18,6 +18,8 @@ package com.github.rinde.dataset;
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.Arrays.asList;
 
+import java.util.Iterator;
+
 import org.junit.Test;
 
 import com.github.rinde.rinsim.scenario.Scenario;
@@ -45,10 +47,10 @@ public class DatasetGeneratorTest {
   @Test
   public void test() {
     final DatasetGenerator gen = DatasetGenerator.builder()
-      .setDynamismLevels(asList(.3, .52))
-      .setUrgencyLevels(asList(15L))
-      .setScaleLevels(asList(1d))
-      .setNumInstances(10)
+      .setDynamismLevels(asList(.1, .3, .5, .7, .9))
+      .setUrgencyLevels(asList(5L, 15L, 30L, 45L))
+      .setScaleLevels(asList(1d, 2d, 5d, 10d))
+      .setNumInstances(50)
       // .setNumThreads(1)
       .build();
 
@@ -66,9 +68,25 @@ public class DatasetGeneratorTest {
     final Dataset<Scenario> conv1 = DatasetGenerator.convert(scen);
     final Dataset<Scenario> conv2 = DatasetGenerator.convert(scen2);
 
-    assertThat(conv1).isEqualTo(conv2);
+    final Iterator<GeneratedScenario> it1 = scen.iterator();
+    final Iterator<GeneratedScenario> it2 = scen2.iterator();
+
+    while (it1.hasNext()) {
+
+      final GeneratedScenario s1 = it1.next();
+      final GeneratedScenario s2 = it2.next();
+
+      assertThat(s1.getScenario().getEvents()).isEqualTo(
+        s2.getScenario().getEvents());
+      assertThat(s1.getScenario()).isEqualTo(s2.getScenario());
+
+      assertThat(s1).isEqualTo(s2);
+
+    }
 
     assertThat(scen).isEqualTo(scen2);
+
+    assertThat(conv1).isEqualTo(conv2);
 
     // System.out.println(Iterators.toString(scen.iterator()));
     //
@@ -89,7 +107,7 @@ public class DatasetGeneratorTest {
   static String toSeedString(Dataset<GeneratedScenario> data) {
     final StringBuilder sb = new StringBuilder();
     for (final GeneratedScenario scen : data) {
-      sb.append(scen.getSettings().getSeed() + ", ");
+      sb.append(scen.getSeed() + ", ");
     }
     return sb.toString();
   }

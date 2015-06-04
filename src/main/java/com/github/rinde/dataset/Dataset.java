@@ -20,10 +20,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -40,13 +42,13 @@ import com.google.common.collect.TreeBasedTable;
 class Dataset<T> implements Iterable<T> {
   Comparator<T> comparator;
   SortedMap<Double, RowSortedTable<Long, Double, SortedSet<T>>> data;
-  SortedSet<T> valuesSet;
+  Set<T> valuesSet;
 
   private Dataset(Comparator<T> comp) {
     comparator = comp;
 
     data = new TreeMap<Double, RowSortedTable<Long, Double, SortedSet<T>>>();
-    valuesSet = new TreeSet<>(comp);
+    valuesSet = new HashSet<>();
   }
 
   static <T extends Comparable<T>> Dataset<T> naturalOrder() {
@@ -58,17 +60,21 @@ class Dataset<T> implements Iterable<T> {
   }
 
   public void put(double dyn, long urg, double scl, T value) {
-    if (!data.containsKey(dyn)) {
-      data.put(dyn, TreeBasedTable.<Long, Double, SortedSet<T>> create());
+    synchronized (data) {
+      checkArgument(!valuesSet.contains(value), "Value %s already exists.",
+        value);
+      if (!data.containsKey(dyn)) {
+        data.put(dyn, TreeBasedTable.<Long, Double, SortedSet<T>> create());
+      }
+      if (!data.get(dyn).contains(urg, scl)) {
+        data.get(dyn).put(urg, scl, new TreeSet<>(comparator));
+      }
+
+      checkArgument(!data.get(dyn).get(urg, scl).contains(value),
+        "Value %s already exists.", value);
+      data.get(dyn).get(urg, scl).add(value);
+      valuesSet.add(value);
     }
-    if (!data.get(dyn).contains(urg, scl)) {
-      data.get(dyn).put(urg, scl, new TreeSet<>(comparator));
-    }
-    checkArgument(!valuesSet.contains(value), "Value %s already exists.", value);
-    checkArgument(!data.get(dyn).get(urg, scl).contains(value),
-      "Value %s already exists.", value);
-    data.get(dyn).get(urg, scl).add(value);
-    valuesSet.add(value);
   }
 
   public boolean containsEntry(double dyn, long urg, double scl, T value) {

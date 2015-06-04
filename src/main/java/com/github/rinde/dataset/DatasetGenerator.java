@@ -23,8 +23,11 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -63,6 +66,7 @@ import com.github.rinde.rinsim.scenario.generator.Vehicles;
 import com.github.rinde.rinsim.util.StochasticSupplier;
 import com.github.rinde.rinsim.util.StochasticSuppliers;
 import com.github.rinde.rinsim.util.TimeWindow;
+import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
@@ -107,8 +111,6 @@ public class DatasetGenerator {
 
   private static final long INTENSITY_PERIOD = 60 * 60 * 1000L;
 
-  private static final int TARGET_NUM_INSTANCES = 50;
-
   // These parameters influence the dynamism selection settings
   private static final double DYN_STEP_SIZE = 0.05;
   private static final double DYN_BANDWIDTH = 0.01;
@@ -127,10 +129,10 @@ public class DatasetGenerator {
       .listeningDecorator(Executors.newFixedThreadPool(builder.numThreads));
     final Dataset<GeneratedScenario> dataset = Dataset.naturalOrder();
 
-    final AtomicLong id = new AtomicLong(0L);
     final List<ScenarioCreator> jobs = new ArrayList<>();
 
     final RandomGenerator rng = new MersenneTwister(builder.randomSeed);
+    final Map<GeneratorSettings, IdSeedGenerator> rngMap = new LinkedHashMap<>();
 
     for (final Long urgency : builder.urgencyLevels) {
       for (final Double scale : builder.scaleLevels) {
@@ -141,66 +143,70 @@ public class DatasetGenerator {
 
           final int reps = builder.numInstances * dynLevel.getValue().size();
 
+          final long urg = urgency * 60 * 1000L;
+          // The office hours is the period in which new orders are accepted,
+          // it is defined as [0,officeHoursLength).
+          final long officeHoursLength;
+          if (urg < HALF_DIAG_TT) {
+            officeHoursLength = SCENARIO_LENGTH - TWO_DIAG_TT
+              - PICKUP_DURATION
+              - DELIVERY_DURATION;
+          } else {
+            officeHoursLength = SCENARIO_LENGTH - urg
+              - ONE_AND_HALF_DIAG_TT
+              - PICKUP_DURATION - DELIVERY_DURATION;
+          }
+
+          final int numOrders = DoubleMath.roundToInt(scale * NUM_ORDERS,
+            RoundingMode.UNNECESSARY);
+
+          final ImmutableMap.Builder<String, String> props = ImmutableMap
+            .builder();
+
+          props.put("expected_num_orders", Integer.toString(numOrders));
+          props.put("pickup_duration", Long.toString(PICKUP_DURATION));
+          props.put("delivery_duration", Long.toString(DELIVERY_DURATION));
+          props.put("width_height",
+            String.format("%1.1fx%1.1f", AREA_WIDTH, AREA_WIDTH));
+
+          // TODO store this in TimeSeriesType?
+          final RangeSet<Double> rset = TreeRangeSet.create();
+          for (final Range<Double> r : dynLevel.getValue()) {
+            rset.add(r);
+          }
+
+          final TimeSeriesGenerator tsg = createTimeSeriesGenerator(
+            dynLevel.getKey(), officeHoursLength, numOrders, props);
+
+          final GeneratorSettings set = GeneratorSettings
+            .builder()
+            .setDayLength(SCENARIO_LENGTH)
+            .setOfficeHours(officeHoursLength)
+            .setTimeSeriesType(dynLevel.getKey())
+            .setDynamismRangeCenters(
+              builder.dynamismRangeMap.subRangeMap(rset.span()))
+            .setUrgency(urg)
+            .setScale(scale)
+            .setNumOrders(numOrders)
+            .setProperties(props.build())
+            .build();
+
+          final IdSeedGenerator isg = new IdSeedGenerator(rng.nextLong());
+          rngMap.put(set, isg);
+
           for (int i = 0; i < reps; i++) {
-
-            final long urg = urgency * 60 * 1000L;
-            // The office hours is the period in which new orders are accepted,
-            // it is defined as [0,officeHoursLength).
-            final long officeHoursLength;
-            if (urg < HALF_DIAG_TT) {
-              officeHoursLength = SCENARIO_LENGTH - TWO_DIAG_TT
-                - PICKUP_DURATION
-                - DELIVERY_DURATION;
-            } else {
-              officeHoursLength = SCENARIO_LENGTH - urg
-                - ONE_AND_HALF_DIAG_TT
-                - PICKUP_DURATION - DELIVERY_DURATION;
-            }
-
-            final int numOrders = DoubleMath.roundToInt(scale * NUM_ORDERS,
-              RoundingMode.UNNECESSARY);
-
-            final ImmutableMap.Builder<String, String> props = ImmutableMap
-              .builder();
-
-            props.put("expected_num_orders", Integer.toString(numOrders));
-            props.put("pickup_duration", Long.toString(PICKUP_DURATION));
-            props.put("delivery_duration", Long.toString(DELIVERY_DURATION));
-            props.put("width_height",
-              String.format("%1.1fx%1.1f", AREA_WIDTH, AREA_WIDTH));
-
-            final TimeSeriesGenerator tsg = createTimeSeriesGenerator(
-              dynLevel.getKey(), officeHoursLength, numOrders, props);
-
             final LocationGenerator lg = Locations.builder()
               .min(0d)
               .max(AREA_WIDTH)
               .buildUniform();
 
-            // TODO store this in TimeSeriesType?
-            final RangeSet<Double> rset = TreeRangeSet.create();
-            for (final Range<Double> r : dynLevel.getValue()) {
-              rset.add(r);
-            }
-
-            final GeneratorSettings set = GeneratorSettings
-              .builder()
-              .setSeed(rng.nextLong())
-              .setDayLength(SCENARIO_LENGTH)
-              .setOfficeHours(officeHoursLength)
-              .setTimeSeriesType(dynLevel.getKey())
-              .setDynamismRangeCenters(
-                builder.dynamismRangeMap.subRangeMap(rset.span()))
-              .setUrgency(urg)
-              .setScale(scale)
-              .setNumOrders(numOrders)
-              .setProperties(props.build())
-              .build();
-
+            final TimeSeriesGenerator tsg2 = createTimeSeriesGenerator(
+              dynLevel.getKey(), officeHoursLength, numOrders,
+              ImmutableMap.<String, String> builder());
             final ScenarioGenerator gen = createGenerator(SCENARIO_LENGTH,
-              urg, scale, tsg, lg);
-            jobs.add(ScenarioCreator.create(id.getAndIncrement(), set, gen));
+              urg, scale, tsg2, lg);
 
+            jobs.add(ScenarioCreator.create(isg.next(), set, gen));
           }
         }
       }
@@ -210,14 +216,14 @@ public class DatasetGenerator {
     final AtomicLong datasetSize = new AtomicLong(0L);
 
     for (final ScenarioCreator job : jobs) {
-      submitJob(currentJobs, id, service, job, builder.numInstances, dataset,
-        rng, datasetSize);
+      submitJob(currentJobs, service, job, builder.numInstances, dataset,
+        rngMap, datasetSize);
     }
 
     final long targetSize = builder.numInstances
       * builder.dynamismLevels.values().size() * builder.scaleLevels.size()
       * builder.urgencyLevels.size();
-    while (datasetSize.get() < targetSize) {
+    while (datasetSize.get() < targetSize || dataset.size() < targetSize) {
       try {
         Thread.sleep(100);
       } catch (final InterruptedException e) {
@@ -234,6 +240,49 @@ public class DatasetGenerator {
     }
 
     return dataset;
+  }
+
+  static class IdSeedGenerator {
+
+    final RandomGenerator rng;
+    long id;
+
+    Object mutex;
+    Set<Long> used;
+
+    IdSeedGenerator(long seed) {
+      mutex = new Object();
+      rng = new MersenneTwister(seed);
+      id = 0L;
+      used = new HashSet<>();
+    }
+
+    IdSeed next() {
+      synchronized (mutex) {
+        return IdSeed.create(id++, nextUnique());
+      }
+    }
+
+    long nextUnique() {
+      while (true) {
+        final long next = rng.nextLong();
+        if (!used.contains(next)) {
+          used.add(next);
+          return next;
+        }
+      }
+    }
+  }
+
+  @AutoValue
+  abstract static class IdSeed {
+    abstract long getId();
+
+    abstract long getSeed();
+
+    static IdSeed create(long i, long s) {
+      return new AutoValue_DatasetGenerator_IdSeed(i, s);
+    }
   }
 
   static Dataset<Scenario> convert(Dataset<GeneratedScenario> input) {
@@ -259,10 +308,14 @@ public class DatasetGenerator {
     return data;
   }
 
-  static void submitJob(final AtomicLong currentJobs, final AtomicLong id,
-    final ListeningExecutorService service, final ScenarioCreator job,
-    final int numInstances, final Dataset<GeneratedScenario> dataset,
-    final RandomGenerator rng, final AtomicLong datasetSize) {
+  static void submitJob(final AtomicLong currentJobs,
+    final ListeningExecutorService service,
+    final ScenarioCreator job,
+    final int numInstances,
+    final Dataset<GeneratedScenario> dataset,
+    final Map<GeneratorSettings, IdSeedGenerator> rngMap,
+    final AtomicLong datasetSize) {
+
     // System.out.println(datasetSize);
     if (service.isShutdown()) {
       return;
@@ -274,15 +327,13 @@ public class DatasetGenerator {
       public void onSuccess(@Nullable GeneratedScenario result) {
         currentJobs.decrementAndGet();
         if (result == null) {
-          // System.out.println("generation fail");
-          final GeneratorSettings newSettings = GeneratorSettings.builder(
-            job.getSettings()).setSeed(job.getSettings().getSeed() + 1).build();
-
           final ScenarioCreator newJob = ScenarioCreator.create(
-            job.getId(), newSettings, job.getGenerator());
+            rngMap.get(job.getSettings()).next(),
+            job.getSettings(),
+            job.getGenerator());
 
-          submitJob(currentJobs, id, service, newJob, numInstances, dataset,
-            rng, datasetSize);
+          submitJob(currentJobs, service, newJob, numInstances, dataset,
+            rngMap, datasetSize);
           return;
         }
         final GeneratedScenario res = verifyNotNull(result);
@@ -319,16 +370,15 @@ public class DatasetGenerator {
 
           if (needMore) {
             // respawn job
-            final GeneratorSettings newSettings = GeneratorSettings.builder(
-              job.getSettings()).setSeed(job.getSettings().getSeed() + 1)
-              .build();
 
             final ScenarioCreator newJob = ScenarioCreator.create(
-              job.getId(), newSettings, job.getGenerator());
+              rngMap.get(job.getSettings()).next()
+              , job.getSettings(),
+              job.getGenerator());
 
             if (!service.isShutdown()) {
-              submitJob(currentJobs, id, service, newJob, numInstances,
-                dataset, rng, datasetSize);
+              submitJob(currentJobs, service, newJob, numInstances,
+                dataset, rngMap, datasetSize);
             }
           }
         }
@@ -553,8 +603,11 @@ public class DatasetGenerator {
         Parcels
           .builder()
           .announceTimes(
-            TimeSeries.filter(tsg,
-              TimeSeries.numEventsPredicate(NUM_ORDERS)))
+            TimeSeries.filter(tsg, TimeSeries.numEventsPredicate(
+              DoubleMath.roundToInt(NUM_ORDERS * scale,
+                RoundingMode.UNNECESSARY)
+              ))
+          )
           .pickupDurations(constant(PICKUP_DURATION))
           .deliveryDurations(constant(DELIVERY_DURATION))
           .neededCapacities(constant(0))
@@ -579,7 +632,8 @@ public class DatasetGenerator {
           .centeredStartPositions()
           .creationTimes(constant(-1L))
           .numberOfVehicles(
-            constant(DoubleMath.roundToInt(10 * scale, RoundingMode.FLOOR)))
+            constant(DoubleMath
+              .roundToInt(10 * scale, RoundingMode.UNNECESSARY)))
           .speeds(constant(VEHICLE_SPEED_KMH))
           .timeWindowsAsScenario()
           .build())

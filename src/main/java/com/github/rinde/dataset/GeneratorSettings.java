@@ -23,8 +23,6 @@ import com.google.common.collect.ImmutableRangeMap;
 @AutoValue
 abstract class GeneratorSettings {
 
-  public abstract long getSeed();
-
   public abstract TimeSeriesType getTimeSeriesType();
 
   public abstract ImmutableRangeMap<Double, Double> getDynamismRangeCenters();
@@ -43,8 +41,6 @@ abstract class GeneratorSettings {
 
   @AutoValue.Builder
   abstract static class Builder {
-
-    abstract Builder setSeed(long seed);
 
     abstract Builder setTimeSeriesType(TimeSeriesType type);
 
