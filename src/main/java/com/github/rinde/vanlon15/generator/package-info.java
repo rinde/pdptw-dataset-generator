@@ -17,4 +17,4 @@
  * @author Rinde van Lon
  */
 @javax.annotation.ParametersAreNonnullByDefault
-package com.github.rinde.dataset;
+package com.github.rinde.vanlon15.generator;

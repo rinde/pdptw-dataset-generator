@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.dataset;
+package com.github.rinde.vanlon15.generator;
 
 import java.util.concurrent.Callable;
 
@@ -23,11 +23,11 @@ import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 
-import com.github.rinde.dataset.DatasetGenerator.IdSeed;
 import com.github.rinde.rinsim.pdptw.common.AddParcelEvent;
 import com.github.rinde.rinsim.scenario.Scenario;
 import com.github.rinde.rinsim.scenario.generator.ScenarioGenerator;
 import com.github.rinde.rinsim.scenario.measure.Metrics;
+import com.github.rinde.vanlon15.generator.DatasetGenerator.IdSeed;
 import com.google.auto.value.AutoValue;
 
 @AutoValue

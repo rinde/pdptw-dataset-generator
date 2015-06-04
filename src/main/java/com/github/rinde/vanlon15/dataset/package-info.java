@@ -13,28 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.dataset;
-
-import com.github.rinde.rinsim.scenario.Scenario.ProblemClass;
-import com.google.auto.value.AutoValue;
-
-@AutoValue
-abstract class VanLon15ProblemClass implements ProblemClass {
-  public abstract double getDynamism();
-
-  public abstract long getUrgency();
-
-  public abstract double getScale();
-
-  @Override
-  public String getId() {
-    return String.format("%1.2f-%d-%1.2f",
-      getDynamism(),
-      getUrgency(),
-      getScale());
-  }
-
-  static VanLon15ProblemClass create(double dyn, long urg, double scl) {
-    return new AutoValue_VanLon15ProblemClass(dyn, urg, scl);
-  }
-}
+/**
+ * @author Rinde van Lon
+ *
+ */
+@javax.annotation.ParametersAreNonnullByDefault
+package com.github.rinde.vanlon15.dataset;

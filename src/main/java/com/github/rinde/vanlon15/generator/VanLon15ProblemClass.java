@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.dataset;
+package com.github.rinde.vanlon15.generator;
 
-import com.github.rinde.rinsim.scenario.Scenario;
+import com.github.rinde.rinsim.scenario.Scenario.ProblemClass;
 import com.google.auto.value.AutoValue;
 
 @AutoValue
-abstract class VanLonScenario extends Scenario {
-
+abstract class VanLon15ProblemClass implements ProblemClass {
   public abstract double getDynamism();
 
   public abstract long getUrgency();
@@ -28,19 +27,14 @@ abstract class VanLonScenario extends Scenario {
   public abstract double getScale();
 
   @Override
-  public abstract VanLon15ProblemClass getProblemClass();
+  public String getId() {
+    return String.format("%1.2f-%d-%1.2f",
+      getDynamism(),
+      getUrgency(),
+      getScale());
+  }
 
-  // static VanLonScenario create(Scenario s, double dyn, long urg, double
-  // scl) {
-  // return new AutoValue_DatasetGenerator_VanLonScenario(
-  // s.getEvents(),
-  // s.getModelBuilders(),
-  // s.getTimeWindow(),
-  // s.getStopCondition(),
-  // (VanLon15ProblemClass) s.getProblemClass(),
-  // s.getProblemInstanceId(),
-  // dyn,
-  // urg,
-  // scl);
-  // }
+  static VanLon15ProblemClass create(double dyn, long urg, double scl) {
+    return new AutoValue_VanLon15ProblemClass(dyn, urg, scl);
+  }
 }

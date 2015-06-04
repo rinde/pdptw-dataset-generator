@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.dataset;
+package com.github.rinde.vanlon15.generator;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.Arrays.asList;
@@ -45,6 +45,7 @@ import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.PDPModelRenderer;
 import com.github.rinde.rinsim.ui.renderers.PlaneRoadModelRenderer;
 import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
+import com.github.rinde.vanlon15.generator.DatasetGenerator;
 
 /**
  * @author Rinde van Lon

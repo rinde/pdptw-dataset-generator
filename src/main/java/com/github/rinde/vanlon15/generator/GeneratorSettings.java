@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.dataset;
+package com.github.rinde.vanlon15.generator;
 
-import com.github.rinde.dataset.DatasetGenerator.TimeSeriesType;
+import com.github.rinde.vanlon15.generator.DatasetGenerator.TimeSeriesType;
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeMap;
