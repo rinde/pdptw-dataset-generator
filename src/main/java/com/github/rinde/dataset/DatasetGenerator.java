@@ -121,11 +121,10 @@ public class DatasetGenerator {
     builder = b;
   }
 
-  Dataset<Scenario> generate() {
+  Dataset<GeneratedScenario> generate() {
 
     final ListeningExecutorService service = MoreExecutors
-      .listeningDecorator(Executors.newFixedThreadPool(Runtime.getRuntime()
-        .availableProcessors()));
+      .listeningDecorator(Executors.newFixedThreadPool(builder.numThreads));
     final Dataset<GeneratedScenario> dataset = Dataset.naturalOrder();
 
     final AtomicLong id = new AtomicLong(0L);
@@ -234,9 +233,13 @@ public class DatasetGenerator {
       e.printStackTrace();
     }
 
+    return dataset;
+  }
+
+  static Dataset<Scenario> convert(Dataset<GeneratedScenario> input) {
     final Dataset<Scenario> data = Dataset
       .orderedBy(ScenarioComparator.INSTANCE);
-    for (final GeneratedScenario gs : dataset) {
+    for (final GeneratedScenario gs : input) {
       final GeneratorSettings settings = gs.getSettings();
 
       final double d = 0d;
@@ -260,7 +263,7 @@ public class DatasetGenerator {
     final ListeningExecutorService service, final ScenarioCreator job,
     final int numInstances, final Dataset<GeneratedScenario> dataset,
     final RandomGenerator rng, final AtomicLong datasetSize) {
-    System.out.println(datasetSize);
+    // System.out.println(datasetSize);
     if (service.isShutdown()) {
       return;
     }
@@ -271,12 +274,12 @@ public class DatasetGenerator {
       public void onSuccess(@Nullable GeneratedScenario result) {
         currentJobs.decrementAndGet();
         if (result == null) {
-          System.out.println("generation fail");
+          // System.out.println("generation fail");
           final GeneratorSettings newSettings = GeneratorSettings.builder(
-            job.getSettings()).setSeed(rng.nextLong()).build();
+            job.getSettings()).setSeed(job.getSettings().getSeed() + 1).build();
 
           final ScenarioCreator newJob = ScenarioCreator.create(
-            id.getAndIncrement(), newSettings, job.getGenerator());
+            job.getId(), newSettings, job.getGenerator());
 
           submitJob(currentJobs, id, service, newJob, numInstances, dataset,
             rng, datasetSize);
@@ -317,10 +320,11 @@ public class DatasetGenerator {
           if (needMore) {
             // respawn job
             final GeneratorSettings newSettings = GeneratorSettings.builder(
-              job.getSettings()).setSeed(rng.nextLong()).build();
+              job.getSettings()).setSeed(job.getSettings().getSeed() + 1)
+              .build();
 
             final ScenarioCreator newJob = ScenarioCreator.create(
-              id.getAndIncrement(), newSettings, job.getGenerator());
+              job.getId(), newSettings, job.getGenerator());
 
             if (!service.isShutdown()) {
               submitJob(currentJobs, id, service, newJob, numInstances,
@@ -430,6 +434,7 @@ public class DatasetGenerator {
     ImmutableRangeMap<Double, Double> dynamismRangeMap;
     ImmutableSet<Long> urgencyLevels;
     int numInstances;
+    int numThreads;
 
     Builder() {
       randomSeed = 0L;
@@ -439,6 +444,7 @@ public class DatasetGenerator {
       dynamismRangeMap = ImmutableRangeMap.of(createDynRange(.5), .5);
       urgencyLevels = ImmutableSet.of(20L);
       numInstances = 1;
+      numThreads = Runtime.getRuntime().availableProcessors();
     }
 
     public Builder setRandomSeed(long seed) {
@@ -519,6 +525,11 @@ public class DatasetGenerator {
 
     public DatasetGenerator build() {
       return new DatasetGenerator(this);
+    }
+
+    public Builder setNumThreads(int i) {
+      numThreads = i;
+      return this;
     }
   }
 

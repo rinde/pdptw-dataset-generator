@@ -49,17 +49,48 @@ public class DatasetGeneratorTest {
       .setUrgencyLevels(asList(15L))
       .setScaleLevels(asList(1d))
       .setNumInstances(10)
+      // .setNumThreads(1)
       .build();
 
-    final Dataset<Scenario> scen = gen.generate();
+    final Dataset<GeneratedScenario> scen = gen.generate();
 
-    final Dataset<Scenario> scen2 = gen.generate();
+    final Dataset<GeneratedScenario> scen2 = gen.generate();
 
     System.out.println(scen.size());
     System.out.println(scen2.size());
+    System.out.println(toString(scen));
+    System.out.println(toString(scen2));
+    System.out.println(toSeedString(scen));
+    System.out.println(toSeedString(scen2));
+
+    final Dataset<Scenario> conv1 = DatasetGenerator.convert(scen);
+    final Dataset<Scenario> conv2 = DatasetGenerator.convert(scen2);
+
+    assertThat(conv1).isEqualTo(conv2);
 
     assertThat(scen).isEqualTo(scen2);
 
     // System.out.println(Iterators.toString(scen.iterator()));
+    //
+    // 9, 68, 126, 151, 164, 243, 276, 279, 286, 289, 12, 13, 15, 17, 19, 28,
+    // 29, 44, 83, 100,
+    // 9, 68, 126, 151, 164, 243, 276, 279, 286, 289, 12, 13, 15, 17, 19, 28,
+    // 29, 44, 52, 55,
+  }
+
+  static String toString(Dataset<GeneratedScenario> data) {
+    final StringBuilder sb = new StringBuilder();
+    for (final GeneratedScenario scen : data) {
+      sb.append(scen.getId() + ", ");
+    }
+    return sb.toString();
+  }
+
+  static String toSeedString(Dataset<GeneratedScenario> data) {
+    final StringBuilder sb = new StringBuilder();
+    for (final GeneratedScenario scen : data) {
+      sb.append(scen.getSettings().getSeed() + ", ");
+    }
+    return sb.toString();
   }
 }

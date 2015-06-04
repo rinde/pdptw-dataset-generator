@@ -71,8 +71,10 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
     final Double dynamismBin = getSettings().getDynamismRangeCenters().get(
       dynamism);
     if (dynamismBin == null) {
-      System.out.println("dynamism fail " + dynamism + " "
-        + getSettings().getDynamismRangeCenters());
+      if (getId() == 44L || getId() == 52L || getId() == 56L) {
+        System.out.println(getId() + " dynamism fail " + dynamism + " "
+          + getSettings().getDynamismRangeCenters());
+      }
       return null;
     }
     return GeneratedScenario.create(scen, getSettings(), getId(), dynamismBin,
