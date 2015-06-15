@@ -30,6 +30,7 @@ import com.github.rinde.logistics.pdptw.mas.comm.SolverBidder;
 import com.github.rinde.logistics.pdptw.mas.route.SolverRoutePlanner;
 import com.github.rinde.logistics.pdptw.solver.CheapestInsertionHeuristic;
 import com.github.rinde.rinsim.central.Central;
+import com.github.rinde.rinsim.central.RandomSolver;
 import com.github.rinde.rinsim.central.SolverModel;
 import com.github.rinde.rinsim.experiment.CommandLineProgress;
 import com.github.rinde.rinsim.experiment.Experiment;
@@ -70,9 +71,11 @@ public class Exp {
       .numBatches(10)
       .addScenarios(FileProvider.builder()
         .add(Paths.get(DATASET))
-        .filter("glob:**-[0-9].scen")
+        .filter("glob:**-[0].scen")
       )
       .addResultListener(new CommandLineProgress(System.out))
+      .addConfiguration(
+        Central.solverConfiguration(RandomSolver.supplier(), "Random"))
       .addConfiguration(Central.solverConfiguration(
         CheapestInsertionHeuristic.supplier(SUM), "-CheapInsert"))
       .addConfiguration(
@@ -115,7 +118,7 @@ public class Exp {
       try {
         Files
           .append(
-            "dynamism,urgency,scale,cost,travel_time,tardiness,over_time,is_valid,scenario_id,random_seed,comp_time,num_vehicles\n",
+            "dynamism,urgency,scale,cost,travel_time,tardiness,over_time,is_valid,scenario_id,random_seed,comp_time,num_vehicles,num_orders\n",
             configResult,
             Charsets.UTF_8);
       } catch (final IOException e1) {
@@ -148,11 +151,14 @@ public class Exp {
           final boolean isValidResult = SUM.isValidResult(sr.stats);
           final long computationTime = sr.stats.computationTime;
 
+          final long numOrders = Long.parseLong(properties
+            .get("AddParcelEvent"));
+
           final String line = Joiner.on(",")
             .appendTo(new StringBuilder(),
               asList(dynamism, urgencyMean, scale, cost, travelTime,
                 tardiness, overTime, isValidResult, scenarioName, sr.seed,
-                computationTime, numVehicles))
+                computationTime, numVehicles, numOrders))
             .append(System.lineSeparator())
             .toString();
           if (!isValidResult) {
