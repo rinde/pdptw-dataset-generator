@@ -76,8 +76,8 @@ public class Exp {
       .addConfiguration(Central.solverConfiguration(
         CheapestInsertionHeuristic.supplier(SUM), "-CheapInsert"))
       .addConfiguration(
-        MASConfiguration
-          .pdptwBuilder()
+        MASConfiguration.pdptwBuilder()
+          .setName("Auction-CheapestInsertion")
           .addEventHandler(AddVehicleEvent.class,
             new VehicleHandler(
               SolverRoutePlanner.supplier(
@@ -95,8 +95,8 @@ public class Exp {
     System.out.println("Done, computed " + results.results.size()
       + " simulations in " + duration / 1000d + "s");
 
-    final Multimap<MASConfiguration, SimulationResult> groupedResults = LinkedHashMultimap
-      .create();
+    final Multimap<MASConfiguration, SimulationResult> groupedResults =
+      LinkedHashMultimap.create();
     for (final SimulationResult sr : results.sortedResults()) {
       groupedResults.put(sr.masConfiguration, sr);
     }
