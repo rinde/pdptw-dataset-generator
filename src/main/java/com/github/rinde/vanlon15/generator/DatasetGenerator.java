@@ -575,7 +575,7 @@ public class DatasetGenerator {
         .put(Range.closedOpen(0.000, 0.475), TimeSeriesType.POISSON_SINE)
         .put(Range.closedOpen(0.475, 0.575), TimeSeriesType.POISSON_HOMOGENOUS)
         .put(Range.closedOpen(0.575, 0.675), TimeSeriesType.NORMAL)
-        .put(Range.closedOpen(0.675, 1.000), TimeSeriesType.UNIFORM)
+        .put(Range.closed(0.675, 1.000), TimeSeriesType.UNIFORM)
         .build();
 
     long randomSeed;
