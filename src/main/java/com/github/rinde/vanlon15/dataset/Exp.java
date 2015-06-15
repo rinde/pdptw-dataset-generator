@@ -24,14 +24,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import com.github.rinde.logistics.pdptw.mas.VehicleHandler;
-import com.github.rinde.logistics.pdptw.mas.comm.AuctionCommModel;
-import com.github.rinde.logistics.pdptw.mas.comm.SolverBidder;
-import com.github.rinde.logistics.pdptw.mas.route.SolverRoutePlanner;
 import com.github.rinde.logistics.pdptw.solver.CheapestInsertionHeuristic;
 import com.github.rinde.rinsim.central.Central;
-import com.github.rinde.rinsim.central.RandomSolver;
-import com.github.rinde.rinsim.central.SolverModel;
 import com.github.rinde.rinsim.experiment.CommandLineProgress;
 import com.github.rinde.rinsim.experiment.Experiment;
 import com.github.rinde.rinsim.experiment.Experiment.SimulationResult;
@@ -71,27 +65,28 @@ public class Exp {
       .numBatches(10)
       .addScenarios(FileProvider.builder()
         .add(Paths.get(DATASET))
-        .filter("glob:**-[0].scen")
+        .filter("glob:**-[0-9].scen")
       )
       .addResultListener(new CommandLineProgress(System.out))
-      .addConfiguration(
-        Central.solverConfiguration(RandomSolver.supplier(), "Random"))
+      // .addConfiguration(
+      // Central.solverConfiguration(RandomSolver.supplier(), "Random"))
       .addConfiguration(Central.solverConfiguration(
         CheapestInsertionHeuristic.supplier(SUM), "-CheapInsert"))
-      .addConfiguration(
-        MASConfiguration.pdptwBuilder()
-          .setName("Auction-CheapestInsertion")
-          .addEventHandler(AddVehicleEvent.class,
-            new VehicleHandler(
-              SolverRoutePlanner.supplier(
-                CheapestInsertionHeuristic.supplier(SUM)),
-              SolverBidder.supplier(SUM,
-                CheapestInsertionHeuristic.supplier(SUM))
-            ))
-          .addModel(SolverModel.builder())
-          .addModel(AuctionCommModel.builder())
-          .build()
-      );
+    // .addConfiguration(
+    // MASConfiguration.pdptwBuilder()
+    // .setName("Auction-CheapestInsertion")
+    // .addEventHandler(AddVehicleEvent.class,
+    // new VehicleHandler(
+    // SolverRoutePlanner.supplier(
+    // CheapestInsertionHeuristic.supplier(SUM)),
+    // SolverBidder.supplier(SUM,
+    // CheapestInsertionHeuristic.supplier(SUM))
+    // ))
+    // .addModel(SolverModel.builder())
+    // .addModel(AuctionCommModel.builder())
+    // .build()
+    // )
+    ;
 
     final ExperimentResults results = experimentBuilder.perform();
     final long duration = System.currentTimeMillis() - time;

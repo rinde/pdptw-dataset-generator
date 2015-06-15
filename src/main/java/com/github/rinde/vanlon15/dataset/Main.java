@@ -26,7 +26,7 @@ import com.github.rinde.vanlon15.generator.DatasetGenerator;
 public class Main {
 
   public static void main(String[] args) {
-
+    final long time = System.currentTimeMillis();
     final DatasetGenerator generator = DatasetGenerator.builder()
       .setDatasetDir("files/dataset/")
       .setDynamismLevels(asList(.2, .5, .8))
@@ -36,6 +36,7 @@ public class Main {
       .build();
 
     generator.generate();
-
+    final long duration = System.currentTimeMillis() - time;
+    System.out.println("Done, in " + duration / 1000d + "s");
   }
 }
