@@ -24,8 +24,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.github.rinde.logistics.pdptw.mas.VehicleHandler;
+import com.github.rinde.logistics.pdptw.mas.comm.AuctionCommModel;
+import com.github.rinde.logistics.pdptw.mas.comm.SolverBidder;
+import com.github.rinde.logistics.pdptw.mas.route.SolverRoutePlanner;
 import com.github.rinde.logistics.pdptw.solver.CheapestInsertionHeuristic;
+import com.github.rinde.logistics.pdptw.solver.Opt2;
 import com.github.rinde.rinsim.central.Central;
+import com.github.rinde.rinsim.central.SolverModel;
 import com.github.rinde.rinsim.experiment.CommandLineProgress;
 import com.github.rinde.rinsim.experiment.Experiment;
 import com.github.rinde.rinsim.experiment.Experiment.SimulationResult;
@@ -65,13 +71,48 @@ public class Exp {
       .numBatches(10)
       .addScenarios(FileProvider.builder()
         .add(Paths.get(DATASET))
-        .filter("glob:**-[0-9].scen")
+        .filter("glob:**-[0].scen")
       )
       .addResultListener(new CommandLineProgress(System.out))
       // .addConfiguration(
       // Central.solverConfiguration(RandomSolver.supplier(), "Random"))
-      .addConfiguration(Central.solverConfiguration(
-        CheapestInsertionHeuristic.supplier(SUM), "-CheapInsert"))
+      // .addConfiguration(Central.solverConfiguration(
+      // CheapestInsertionHeuristic.supplier(SUM), "-CheapInsert"))
+      // .addConfiguration(
+      // MASConfiguration.pdptwBuilder()
+      // .setName("GradientFieldConfiguration")
+      // .addEventHandler(AddVehicleEvent.class,
+      // GradientFieldExample.VehicleHandler.INSTANCE)
+      // .addModel(GradientModel.builder())
+      // .build()
+      // )
+      .addConfiguration(
+        MASConfiguration
+          .pdptwBuilder()
+          .setName("Auction-R-opt2cih-B-cih")
+          .addEventHandler(
+            AddVehicleEvent.class,
+            new VehicleHandler(
+              SolverRoutePlanner.supplier(
+                Opt2.breadthFirstSupplier(
+                  CheapestInsertionHeuristic.supplier(SUM), SUM
+                  )
+                ),
+              SolverBidder.supplier(SUM,
+                CheapestInsertionHeuristic.supplier(SUM))
+            )
+          )
+          .addModel(SolverModel.builder())
+          .addModel(AuctionCommModel.builder())
+          .build()
+      )
+      .addConfiguration(
+        Central.solverConfiguration(
+          Opt2.breadthFirstSupplier(CheapestInsertionHeuristic.supplier(SUM),
+            SUM)
+          , "opt2cih")
+      )
+
     // .addConfiguration(
     // MASConfiguration.pdptwBuilder()
     // .setName("Auction-CheapestInsertion")
@@ -85,6 +126,16 @@ public class Exp {
     // .addModel(SolverModel.builder())
     // .addModel(AuctionCommModel.builder())
     // .build()
+    // )
+    // .showGui(View.builder()
+    // .with(PlaneRoadModelRenderer.builder())
+    // .with(RoadUserRenderer.builder())
+    // .with(GradientFieldRenderer.builder())
+    // .with(RouteRenderer.builder())
+    // // .with(TimeLinePanel.builder())
+    // .with(PDPModelRenderer.builder()
+    // .withDestinationLines()
+    // ).withAutoPlay()
     // )
     ;
 
