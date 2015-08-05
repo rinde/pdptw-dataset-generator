@@ -343,7 +343,7 @@ public class DatasetGenerator {
       writePropertiesFile(s, set, actualDyn, seed, filePath.toString());
       MetricsIO.writeLocationList(Metrics.getServicePoints(s),
         new File(filePath.toString() + ".points"));
-      MetricsIO.writeTimes(s.getTimeWindow().end,
+      MetricsIO.writeTimes(s.getTimeWindow().end(),
         Metrics.getArrivalTimes(s),
         new File(filePath.toString() + ".times"));
 
@@ -456,8 +456,7 @@ public class DatasetGenerator {
             // respawn job
 
             final ScenarioCreator newJob = ScenarioCreator.create(
-              rngMap.get(job.getSettings()).next()
-              , job.getSettings(),
+              rngMap.get(job.getSettings()).next(), job.getSettings(),
               job.getGenerator());
 
             if (!service.isShutdown()) {
@@ -570,13 +569,13 @@ public class DatasetGenerator {
   }
 
   public static class Builder {
-    static final ImmutableRangeMap<Double, TimeSeriesType> DYNAMISM_MAP =
-      ImmutableRangeMap.<Double, TimeSeriesType> builder()
-        .put(Range.closedOpen(0.000, 0.475), TimeSeriesType.POISSON_SINE)
-        .put(Range.closedOpen(0.475, 0.575), TimeSeriesType.POISSON_HOMOGENOUS)
-        .put(Range.closedOpen(0.575, 0.675), TimeSeriesType.NORMAL)
-        .put(Range.closed(0.675, 1.000), TimeSeriesType.UNIFORM)
-        .build();
+    static final ImmutableRangeMap<Double, TimeSeriesType> DYNAMISM_MAP = ImmutableRangeMap
+      .<Double, TimeSeriesType> builder()
+      .put(Range.closedOpen(0.000, 0.475), TimeSeriesType.POISSON_SINE)
+      .put(Range.closedOpen(0.475, 0.575), TimeSeriesType.POISSON_HOMOGENOUS)
+      .put(Range.closedOpen(0.575, 0.675), TimeSeriesType.NORMAL)
+      .put(Range.closed(0.675, 1.000), TimeSeriesType.UNIFORM)
+      .build();
 
     long randomSeed;
     ImmutableSet<Double> scaleLevels;
@@ -630,8 +629,8 @@ public class DatasetGenerator {
         map.put(newRange, d);
       }
 
-      final SetMultimap<TimeSeriesType, Range<Double>> timeSeriesTypes =
-        LinkedHashMultimap.<TimeSeriesType, Range<Double>> create();
+      final SetMultimap<TimeSeriesType, Range<Double>> timeSeriesTypes = LinkedHashMultimap
+        .<TimeSeriesType, Range<Double>> create();
 
       for (final Range<Double> r : dynamismLevelsB) {
         checkArgument(DYNAMISM_MAP.get(r.lowerEndpoint()) != null);
@@ -694,17 +693,14 @@ public class DatasetGenerator {
     long urgency, double scale, TimeSeriesGenerator tsg, LocationGenerator lg) {
     return ScenarioGenerator.builder()
 
-      // global
+    // global
       .addModel(TimeModel.builder()
         .withTickLength(TICK_SIZE)
-        .withTimeUnit(SI.MILLI(SI.SECOND))
-      )
+        .withTimeUnit(SI.MILLI(SI.SECOND)))
       .scenarioLength(scenarioLength)
       .setStopCondition(StopConditions.and(
         StatsStopConditions.vehiclesDoneAndBackAtDepot(),
-        StatsStopConditions.timeOutEvent()
-        )
-      )
+        StatsStopConditions.timeOutEvent()))
       // parcels
       .parcels(
         Parcels
@@ -712,26 +708,24 @@ public class DatasetGenerator {
           .announceTimes(
             TimeSeries.filter(tsg, TimeSeries.numEventsPredicate(
               DoubleMath.roundToInt(NUM_ORDERS * scale,
-                RoundingMode.UNNECESSARY)
-              ))
-          )
+                RoundingMode.UNNECESSARY))))
           .pickupDurations(constant(PICKUP_DURATION))
           .deliveryDurations(constant(DELIVERY_DURATION))
           .neededCapacities(constant(0))
           .locations(lg)
           .timeWindows(new CustomTimeWindowGenerator(urgency)
-          // TimeWindows.builder()
-          // .pickupUrgency(constant(urgency))
-          // // .pickupTimeWindowLength(StochasticSuppliers.uniformLong(5
-          // // * 60 * 1000L,))
-          // .deliveryOpening(constant(0L))
-          // .minDeliveryLength(constant(10 * 60 * 1000L))
-          // .deliveryLengthFactor(constant(3d))
-          // .build()
-          )
+    // TimeWindows.builder()
+    // .pickupUrgency(constant(urgency))
+    // // .pickupTimeWindowLength(StochasticSuppliers.uniformLong(5
+    // // * 60 * 1000L,))
+    // .deliveryOpening(constant(0L))
+    // .minDeliveryLength(constant(10 * 60 * 1000L))
+    // .deliveryLengthFactor(constant(3d))
+    // .build()
+    )
           .build())
 
-      // vehicles
+    // vehicles
       .vehicles(
         Vehicles
           .builder()
@@ -745,23 +739,20 @@ public class DatasetGenerator {
           .timeWindowsAsScenario()
           .build())
 
-      // depots
+    // depots
       .depots(Depots.singleCenteredDepot())
 
-      // models
+    // models
       .addModel(
         PDPRoadModel.builder(
           RoadModelBuilders.plane()
             .withMaxSpeed(VEHICLE_SPEED_KMH)
             .withSpeedUnit(NonSI.KILOMETERS_PER_HOUR)
-            .withDistanceUnit(SI.KILOMETER)
-          )
-          .withAllowVehicleDiversion(true)
-      )
+            .withDistanceUnit(SI.KILOMETER))
+          .withAllowVehicleDiversion(true))
       .addModel(
         DefaultPDPModel.builder()
-          .withTimeWindowPolicy(TimeWindowPolicies.TARDY_ALLOWED)
-      )
+          .withTimeWindowPolicy(TimeWindowPolicies.TARDY_ALLOWED))
       .build();
   }
 
@@ -804,16 +795,17 @@ public class DatasetGenerator {
         // where n = urgency - MINIMAL_PICKUP_TW_LENGTH
         pickupOpening = orderAnnounceTime + DoubleMath.roundToLong(
           pickupTWopening.get(rng.nextLong())
-            * (urgency - MINIMAL_PICKUP_TW_LENGTH), RoundingMode.HALF_UP);
+            * (urgency - MINIMAL_PICKUP_TW_LENGTH),
+          RoundingMode.HALF_UP);
       } else {
         pickupOpening = orderAnnounceTime;
       }
-      final TimeWindow pickupTW = new TimeWindow(pickupOpening,
+      final TimeWindow pickupTW = TimeWindow.create(pickupOpening,
         orderAnnounceTime + urgency);
       parcelBuilder.pickupTimeWindow(pickupTW);
 
       // find boundaries
-      final long minDeliveryOpening = pickupTW.begin
+      final long minDeliveryOpening = pickupTW.begin()
         + parcelBuilder.getPickupDuration() + pickupToDeliveryTT;
 
       final long maxDeliveryClosing = endTime - deliveryToDepotTT
@@ -828,7 +820,7 @@ public class DatasetGenerator {
         + DoubleMath.roundToLong(deliveryTWopening.get(rng.nextLong())
           * openingRange, RoundingMode.HALF_DOWN);
 
-      final long minDeliveryClosing = Math.min(Math.max(pickupTW.end
+      final long minDeliveryClosing = Math.min(Math.max(pickupTW.end()
         + parcelBuilder.getPickupDuration() + pickupToDeliveryTT,
         deliveryOpening + MINIMAL_DELIVERY_TW_LENGTH), maxDeliveryClosing);
 
@@ -879,12 +871,12 @@ public class DatasetGenerator {
       // deliveryTimeWindowLength = latestDelivery - deliveryOpening;
       // }
 
-      final TimeWindow deliveryTW = new TimeWindow(deliveryOpening,
+      final TimeWindow deliveryTW = TimeWindow.create(deliveryOpening,
         deliveryClosing);
 
       checkArgument(deliveryOpening >= minDeliveryOpening);
       checkArgument(deliveryOpening + deliveryTW.length() <= latestDelivery);
-      checkArgument(pickupTW.end + parcelBuilder.getPickupDuration()
+      checkArgument(pickupTW.end() + parcelBuilder.getPickupDuration()
         + pickupToDeliveryTT <= deliveryOpening + deliveryTW.length());
 
       parcelBuilder.deliveryTimeWindow(deliveryTW);

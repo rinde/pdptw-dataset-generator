@@ -24,14 +24,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import com.github.rinde.logistics.pdptw.mas.VehicleHandler;
-import com.github.rinde.logistics.pdptw.mas.comm.AuctionCommModel;
-import com.github.rinde.logistics.pdptw.mas.comm.SolverBidder;
-import com.github.rinde.logistics.pdptw.mas.route.SolverRoutePlanner;
-import com.github.rinde.logistics.pdptw.solver.CheapestInsertionHeuristic;
-import com.github.rinde.logistics.pdptw.solver.Opt2;
-import com.github.rinde.rinsim.central.Central;
-import com.github.rinde.rinsim.central.SolverModel;
+import com.github.rinde.rinsim.central.RandomSolver;
+import com.github.rinde.rinsim.central.rt.RtCentral;
 import com.github.rinde.rinsim.experiment.CommandLineProgress;
 import com.github.rinde.rinsim.experiment.Experiment;
 import com.github.rinde.rinsim.experiment.Experiment.SimulationResult;
@@ -39,6 +33,8 @@ import com.github.rinde.rinsim.experiment.ExperimentResults;
 import com.github.rinde.rinsim.experiment.MASConfiguration;
 import com.github.rinde.rinsim.io.FileProvider;
 import com.github.rinde.rinsim.pdptw.common.AddVehicleEvent;
+import com.github.rinde.rinsim.scenario.ScenarioConverters;
+import com.github.rinde.rinsim.scenario.ScenarioIO;
 import com.github.rinde.rinsim.scenario.gendreau06.Gendreau06ObjectiveFunction;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -65,53 +61,55 @@ public class Exp {
     final Experiment.Builder experimentBuilder = Experiment
       .build(SUM)
       .computeLocal()
-      // .computeDistributed()
       .withRandomSeed(123)
       .repeat(1)
-      .numBatches(10)
+      .setScenarioReader(
+        ScenarioIO.readerAdapter(ScenarioConverters.toRealtime()))
       .addScenarios(FileProvider.builder()
         .add(Paths.get(DATASET))
-        .filter("glob:**-[0].scen")
-      )
+        .filter("glob:**-[0].scen"))
       .addResultListener(new CommandLineProgress(System.out))
-      // .addConfiguration(
-      // Central.solverConfiguration(RandomSolver.supplier(), "Random"))
-      // .addConfiguration(Central.solverConfiguration(
-      // CheapestInsertionHeuristic.supplier(SUM), "-CheapInsert"))
-      // .addConfiguration(
-      // MASConfiguration.pdptwBuilder()
-      // .setName("GradientFieldConfiguration")
-      // .addEventHandler(AddVehicleEvent.class,
-      // GradientFieldExample.VehicleHandler.INSTANCE)
-      // .addModel(GradientModel.builder())
-      // .build()
-      // )
       .addConfiguration(
-        MASConfiguration
-          .pdptwBuilder()
-          .setName("Auction-R-opt2cih-B-cih")
-          .addEventHandler(
-            AddVehicleEvent.class,
-            new VehicleHandler(
-              SolverRoutePlanner.supplier(
-                Opt2.breadthFirstSupplier(
-                  CheapestInsertionHeuristic.supplier(SUM), SUM
-                  )
-                ),
-              SolverBidder.supplier(SUM,
-                CheapestInsertionHeuristic.supplier(SUM))
-            )
-          )
-          .addModel(SolverModel.builder())
-          .addModel(AuctionCommModel.builder())
-          .build()
-      )
-      .addConfiguration(
-        Central.solverConfiguration(
-          Opt2.breadthFirstSupplier(CheapestInsertionHeuristic.supplier(SUM),
-            SUM)
-          , "opt2cih")
-      )
+        RtCentral.solverConfigurationAdapt(RandomSolver.supplier(), ""))
+
+    // .addConfiguration(
+    // Central.solverConfiguration(RandomSolver.supplier(), "Random"))
+    // .addConfiguration(Central.solverConfiguration(
+    // CheapestInsertionHeuristic.supplier(SUM), "-CheapInsert"))
+    // .addConfiguration(
+    // MASConfiguration.pdptwBuilder()
+    // .setName("GradientFieldConfiguration")
+    // .addEventHandler(AddVehicleEvent.class,
+    // GradientFieldExample.VehicleHandler.INSTANCE)
+    // .addModel(GradientModel.builder())
+    // .build()
+    // )
+    // .addConfiguration(
+    // MASConfiguration
+    // .pdptwBuilder()
+    // .setName("Auction-R-opt2cih-B-cih")
+    // .addEventHandler(
+    // AddVehicleEvent.class,
+    // new VehicleHandler(
+    // SolverRoutePlanner.supplier(
+    // Opt2.breadthFirstSupplier(
+    // CheapestInsertionHeuristic.supplier(SUM), SUM
+    // )
+    // ),
+    // SolverBidder.supplier(SUM,
+    // CheapestInsertionHeuristic.supplier(SUM))
+    // )
+    // )
+    // .addModel(SolverModel.builder())
+    // .addModel(AuctionCommModel.builder())
+    // .build()
+    // )
+
+    // .addConfiguration(
+    // Central.solverConfiguration(
+    // Opt2.breadthFirstSupplier(CheapestInsertionHeuristic.supplier(SUM),
+    // SUM),
+    // "opt2cih"))
 
     // .addConfiguration(
     // MASConfiguration.pdptwBuilder()
@@ -141,13 +139,13 @@ public class Exp {
 
     final ExperimentResults results = experimentBuilder.perform();
     final long duration = System.currentTimeMillis() - time;
-    System.out.println("Done, computed " + results.results.size()
+    System.out.println("Done, computed " + results.getResults().size()
       + " simulations in " + duration / 1000d + "s");
 
-    final Multimap<MASConfiguration, SimulationResult> groupedResults =
-      LinkedHashMultimap.create();
+    final Multimap<MASConfiguration, SimulationResult> groupedResults = LinkedHashMultimap
+      .create();
     for (final SimulationResult sr : results.sortedResults()) {
-      groupedResults.put(sr.masConfiguration, sr);
+      groupedResults.put(sr.getMasConfiguration(), sr);
     }
 
     for (final MASConfiguration config : groupedResults.keySet()) {
@@ -172,9 +170,10 @@ public class Exp {
       }
 
       for (final SimulationResult sr : group) {
-        final String pc = sr.scenario.getProblemClass().getId();
-        final String id = sr.scenario.getProblemInstanceId();
-        final int numVehicles = FluentIterable.from(sr.scenario.getEvents())
+        final String pc = sr.getScenario().getProblemClass().getId();
+        final String id = sr.getScenario().getProblemInstanceId();
+        final int numVehicles = FluentIterable
+          .from(sr.getScenario().getEvents())
           .filter(AddVehicleEvent.class).size();
         try {
           final String scenarioName = Joiner.on("-").join(pc, id);
@@ -190,12 +189,12 @@ public class Exp {
           final long urgencyMean = Long.parseLong(properties.get("urgency"));
           final double scale = Double.parseDouble(properties.get("scale"));
 
-          final double cost = SUM.computeCost(sr.stats);
-          final double travelTime = SUM.travelTime(sr.stats);
-          final double tardiness = SUM.tardiness(sr.stats);
-          final double overTime = SUM.overTime(sr.stats);
-          final boolean isValidResult = SUM.isValidResult(sr.stats);
-          final long computationTime = sr.stats.computationTime;
+          final double cost = SUM.computeCost(sr.getStats());
+          final double travelTime = SUM.travelTime(sr.getStats());
+          final double tardiness = SUM.tardiness(sr.getStats());
+          final double overTime = SUM.overTime(sr.getStats());
+          final boolean isValidResult = SUM.isValidResult(sr.getStats());
+          final long computationTime = sr.getStats().computationTime;
 
           final long numOrders = Long.parseLong(properties
             .get("AddParcelEvent"));
@@ -203,7 +202,7 @@ public class Exp {
           final String line = Joiner.on(",")
             .appendTo(new StringBuilder(),
               asList(dynamism, urgencyMean, scale, cost, travelTime,
-                tardiness, overTime, isValidResult, scenarioName, sr.seed,
+                tardiness, overTime, isValidResult, scenarioName, sr.getSeed(),
                 computationTime, numVehicles, numOrders))
             .append(System.lineSeparator())
             .toString();
