@@ -26,11 +26,15 @@ import java.util.Map;
 
 import com.github.rinde.rinsim.central.RandomSolver;
 import com.github.rinde.rinsim.central.rt.RtCentral;
+import com.github.rinde.rinsim.core.Simulator;
+import com.github.rinde.rinsim.core.model.time.RealtimeClockLogger;
+import com.github.rinde.rinsim.core.model.time.RealtimeClockLogger.LogEntry;
 import com.github.rinde.rinsim.experiment.CommandLineProgress;
 import com.github.rinde.rinsim.experiment.Experiment;
 import com.github.rinde.rinsim.experiment.Experiment.SimulationResult;
 import com.github.rinde.rinsim.experiment.ExperimentResults;
 import com.github.rinde.rinsim.experiment.MASConfiguration;
+import com.github.rinde.rinsim.experiment.PostProcessor;
 import com.github.rinde.rinsim.io.FileProvider;
 import com.github.rinde.rinsim.pdptw.common.AddVehicleEvent;
 import com.github.rinde.rinsim.scenario.ScenarioConverters;
@@ -56,12 +60,12 @@ public class Exp {
   static final String RESULTS = "files/results/";
 
   public static void main(String[] args) {
-
     final long time = System.currentTimeMillis();
     final Experiment.Builder experimentBuilder = Experiment
       .build(SUM)
       .computeLocal()
       .withRandomSeed(123)
+      .withThreads(4)
       .repeat(1)
       .setScenarioReader(
         ScenarioIO.readerAdapter(ScenarioConverters.toRealtime()))
@@ -70,7 +74,11 @@ public class Exp {
         .filter("glob:**-[0].scen"))
       .addResultListener(new CommandLineProgress(System.out))
       .addConfiguration(
-        RtCentral.solverConfigurationAdapt(RandomSolver.supplier(), ""))
+        MASConfiguration.builder(
+          RtCentral.solverConfigurationAdapt(RandomSolver.supplier(), ""))
+          .addModel(RealtimeClockLogger.builder())
+          .build())
+      .usePostProcessor(LogProcessor.INSTANCE)
 
     // .addConfiguration(
     // Central.solverConfiguration(RandomSolver.supplier(), "Random"))
@@ -217,5 +225,23 @@ public class Exp {
       }
     }
 
+  }
+
+  enum LogProcessor implements PostProcessor<List<LogEntry>> {
+    INSTANCE {
+      @Override
+      public List<LogEntry> collectResults(Simulator sim) {
+        return sim.getModelProvider().getModel(RealtimeClockLogger.class)
+          .getLog();
+      }
+
+      @Override
+      public void handleFailure(Exception e, Simulator sim) {
+        System.out.println("***** RealtimeClock Log *****");
+        System.out.println(Joiner.on("\n").join(
+          sim.getModelProvider().getModel(RealtimeClockLogger.class)
+            .getLog()));
+      }
+    }
   }
 }
