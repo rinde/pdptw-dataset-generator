@@ -75,6 +75,7 @@ import com.github.rinde.rinsim.scenario.generator.TimeWindows.TimeWindowGenerato
 import com.github.rinde.rinsim.scenario.generator.Vehicles;
 import com.github.rinde.rinsim.scenario.measure.Metrics;
 import com.github.rinde.rinsim.scenario.measure.MetricsIO;
+import com.github.rinde.rinsim.scenario.vanlon15.VanLon15ProblemClass;
 import com.github.rinde.rinsim.util.StochasticSupplier;
 import com.github.rinde.rinsim.util.StochasticSuppliers;
 import com.github.rinde.rinsim.util.TimeWindow;
