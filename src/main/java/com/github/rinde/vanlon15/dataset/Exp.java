@@ -24,7 +24,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import com.github.rinde.rinsim.central.RandomSolver;
+import com.github.rinde.logistics.pdptw.solver.CheapestInsertionHeuristic;
+import com.github.rinde.logistics.pdptw.solver.Opt2;
 import com.github.rinde.rinsim.central.rt.RtCentral;
 import com.github.rinde.rinsim.core.Simulator;
 import com.github.rinde.rinsim.core.model.time.RealtimeClockLogger;
@@ -37,6 +38,7 @@ import com.github.rinde.rinsim.experiment.MASConfiguration;
 import com.github.rinde.rinsim.experiment.PostProcessor;
 import com.github.rinde.rinsim.io.FileProvider;
 import com.github.rinde.rinsim.pdptw.common.AddVehicleEvent;
+import com.github.rinde.rinsim.scenario.ScenarioController;
 import com.github.rinde.rinsim.scenario.gendreau06.Gendreau06ObjectiveFunction;
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Charsets;
@@ -64,18 +66,22 @@ public class Exp {
       .build(SUM)
       .computeLocal()
       .withRandomSeed(123)
-      .withThreads(4)
+      .withThreads(12)
       .repeat(1)
       // .setScenarioReader(
       // ScenarioIO.readerAdapter(ScenarioConverters.toRealtime()))
       .addScenarios(FileProvider.builder()
         .add(Paths.get(DATASET))
-        .filter("glob:**0.50-20-1.00-0.scen"))
+        .filter("glob:**.scen"))
       .addResultListener(new CommandLineProgress(System.out))
       .addConfiguration(
         MASConfiguration.builder(
-          RtCentral.solverConfigurationAdapt(RandomSolver.supplier(), ""))
-          .addModel(RealtimeClockLogger.builder())
+          RtCentral.solverConfigurationAdapt(
+            Opt2.breadthFirstSupplier(CheapestInsertionHeuristic.supplier(SUM),
+              SUM),
+            "opt2cih"))
+
+    .addModel(RealtimeClockLogger.builder())
           .build())
       .usePostProcessor(LogProcessor.INSTANCE)
 
@@ -257,6 +263,13 @@ public class Exp {
 
       @Override
       public void handleFailure(Exception e, Simulator sim) {
+
+        final ScenarioController sc = sim.getModelProvider()
+          .getModel(ScenarioController.class);
+
+        System.out
+          .println(sc.getScenarioProblemClass() + " " + sc.getScenarioId());
+
         System.out.println("***** RealtimeClock Log *****");
         e.printStackTrace();
         System.out.println(Joiner.on("\n").join(
