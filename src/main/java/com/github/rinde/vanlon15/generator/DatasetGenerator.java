@@ -109,7 +109,7 @@ import com.google.common.util.concurrent.MoreExecutors;
  */
 public class DatasetGenerator {
 
-  private static final long TICK_SIZE = 1000L;
+  private static final long TICK_SIZE = 100L;
   private static final double VEHICLE_SPEED_KMH = 50d;
 
   // n x n (km)
