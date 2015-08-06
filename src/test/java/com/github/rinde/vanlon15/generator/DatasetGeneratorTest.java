@@ -45,7 +45,6 @@ import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.PDPModelRenderer;
 import com.github.rinde.rinsim.ui.renderers.PlaneRoadModelRenderer;
 import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
-import com.github.rinde.vanlon15.generator.DatasetGenerator;
 
 /**
  * @author Rinde van Lon
@@ -74,7 +73,7 @@ public class DatasetGeneratorTest {
       .setUrgencyLevels(asList(15L))
       .setScaleLevels(asList(1d))
       .setNumInstances(1)
-      .setDatasetDir("files/dataset/")
+      .setDatasetDir("files/test/dataset/")
       // .setNumThreads(1)
       .build();
 
@@ -92,7 +91,7 @@ public class DatasetGeneratorTest {
   // @Test
   public void test2() {
     try (final DirectoryStream<Path> directoryStream = Files
-      .newDirectoryStream(Paths.get("files/dataset/"), "*.scen")) {
+      .newDirectoryStream(Paths.get("files/test/dataset/"), "*.scen")) {
 
       for (final Path path : directoryStream) {
         System.out.println(path);
@@ -135,13 +134,10 @@ public class DatasetGeneratorTest {
           SolverRoutePlanner.supplier(
             CheapestInsertionHeuristic.supplier(objFunc)),
           SolverBidder.supplier(objFunc,
-            CheapestInsertionHeuristic.supplier(objFunc))
-          )
-        )
+            CheapestInsertionHeuristic.supplier(objFunc))))
         .addModel(AuctionCommModel.builder())
         .addModel(SolverModel.builder())
-        .build()
-      )
+        .build())
       .withThreads(1)
       .showGui(
         // schema.add(Vehicle.class, SWT.COLOR_RED);
@@ -150,15 +146,14 @@ public class DatasetGeneratorTest {
         View.builder()
           .with(PlaneRoadModelRenderer.builder())
           .with(RoadUserRenderer.builder()
-          // .withColorAssociation(Vehicle.class, SWT.COLOR_RED)
-          )
+    // .withColorAssociation(Vehicle.class, SWT.COLOR_RED)
+    )
           .with(PDPModelRenderer.builder())
           .with(TimeLinePanel.builder())
           .withTitleAppendix(fileName)
           .withAutoPlay()
           .withAutoClose()
-          .withSpeedUp(80)
-      )
+          .withSpeedUp(80))
       .perform();
   }
 }

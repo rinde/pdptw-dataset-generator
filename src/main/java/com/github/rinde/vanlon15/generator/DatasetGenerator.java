@@ -53,6 +53,7 @@ import com.github.rinde.rinsim.core.model.pdp.DefaultPDPModel;
 import com.github.rinde.rinsim.core.model.pdp.Parcel;
 import com.github.rinde.rinsim.core.model.pdp.TimeWindowPolicy.TimeWindowPolicies;
 import com.github.rinde.rinsim.core.model.road.RoadModelBuilders;
+import com.github.rinde.rinsim.core.model.time.RealtimeClockController.ClockMode;
 import com.github.rinde.rinsim.core.model.time.TimeModel;
 import com.github.rinde.rinsim.geom.Point;
 import com.github.rinde.rinsim.pdptw.common.PDPRoadModel;
@@ -113,9 +114,10 @@ public class DatasetGenerator {
   // n x n (km)
   private static final double AREA_WIDTH = 10;
 
-  private static final long SCENARIO_HOURS = 8L;
+  private static final long SCENARIO_HOURS = 4L;
   private static final long SCENARIO_LENGTH = SCENARIO_HOURS * 60 * 60 * 1000L;
-  private static final int NUM_ORDERS = 240;
+  private static final int ORDERS_P_HOUR = 30;
+  private static final int NUM_ORDERS = (int) (ORDERS_P_HOUR * SCENARIO_HOURS);
 
   private static final long HALF_DIAG_TT = 509117L;
   private static final long ONE_AND_HALF_DIAG_TT = 1527351L;
@@ -192,8 +194,8 @@ public class DatasetGenerator {
             rset.add(r);
           }
 
-          final TimeSeriesGenerator tsg = createTimeSeriesGenerator(
-            dynLevel.getKey(), officeHoursLength, numOrders, props);
+          createTimeSeriesGenerator(dynLevel.getKey(), officeHoursLength,
+            numOrders, props);
 
           final GeneratorSettings set = GeneratorSettings
             .builder()
@@ -695,6 +697,8 @@ public class DatasetGenerator {
 
     // global
       .addModel(TimeModel.builder()
+        .withRealTime()
+        .withStartInClockMode(ClockMode.SIMULATED)
         .withTickLength(TICK_SIZE)
         .withTimeUnit(SI.MILLI(SI.SECOND)))
       .scenarioLength(scenarioLength)

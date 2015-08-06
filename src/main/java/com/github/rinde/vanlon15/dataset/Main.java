@@ -32,7 +32,7 @@ public class Main {
       .setDynamismLevels(asList(.2, .5, .8))
       .setUrgencyLevels(asList(5L, 20L, 35L))
       .setScaleLevels(asList(1d, 5d, 10d))
-      .setNumInstances(50)
+      .setNumInstances(10)
       .build();
 
     generator.generate();

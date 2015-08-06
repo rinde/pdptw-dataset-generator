@@ -37,9 +37,8 @@ import com.github.rinde.rinsim.experiment.MASConfiguration;
 import com.github.rinde.rinsim.experiment.PostProcessor;
 import com.github.rinde.rinsim.io.FileProvider;
 import com.github.rinde.rinsim.pdptw.common.AddVehicleEvent;
-import com.github.rinde.rinsim.scenario.ScenarioConverters;
-import com.github.rinde.rinsim.scenario.ScenarioIO;
 import com.github.rinde.rinsim.scenario.gendreau06.Gendreau06ObjectiveFunction;
+import com.google.auto.value.AutoValue;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -67,11 +66,11 @@ public class Exp {
       .withRandomSeed(123)
       .withThreads(4)
       .repeat(1)
-      .setScenarioReader(
-        ScenarioIO.readerAdapter(ScenarioConverters.toRealtime()))
+      // .setScenarioReader(
+      // ScenarioIO.readerAdapter(ScenarioConverters.toRealtime()))
       .addScenarios(FileProvider.builder()
         .add(Paths.get(DATASET))
-        .filter("glob:**-[0].scen"))
+        .filter("glob:**0.50-20-1.00-0.scen"))
       .addResultListener(new CommandLineProgress(System.out))
       .addConfiguration(
         MASConfiguration.builder(
@@ -204,6 +203,12 @@ public class Exp {
           final boolean isValidResult = SUM.isValidResult(sr.getStats());
           final long computationTime = sr.getStats().computationTime;
 
+          final ExperimentInfo info = (ExperimentInfo) sr.getSimulationData()
+            .get();
+
+          System.out.println("rt count: " + info.getRtCount());
+          System.out.println("st count: " + info.getStCount());
+
           final long numOrders = Long.parseLong(properties
             .get("AddParcelEvent"));
 
@@ -227,17 +232,33 @@ public class Exp {
 
   }
 
-  enum LogProcessor implements PostProcessor<List<LogEntry>> {
+  @AutoValue
+  abstract static class ExperimentInfo {
+    abstract List<LogEntry> getLog();
+
+    abstract long getRtCount();
+
+    abstract long getStCount();
+
+    static ExperimentInfo create(List<LogEntry> log, long rt, long st) {
+      return new AutoValue_Exp_ExperimentInfo(log, rt, st);
+    }
+  }
+
+  enum LogProcessor implements PostProcessor<ExperimentInfo> {
     INSTANCE {
       @Override
-      public List<LogEntry> collectResults(Simulator sim) {
-        return sim.getModelProvider().getModel(RealtimeClockLogger.class)
-          .getLog();
+      public ExperimentInfo collectResults(Simulator sim) {
+        final RealtimeClockLogger logger = sim.getModelProvider()
+          .getModel(RealtimeClockLogger.class);
+        return ExperimentInfo.create(logger.getLog(), logger.getRtCount(),
+          logger.getStCount());
       }
 
       @Override
       public void handleFailure(Exception e, Simulator sim) {
         System.out.println("***** RealtimeClock Log *****");
+        e.printStackTrace();
         System.out.println(Joiner.on("\n").join(
           sim.getModelProvider().getModel(RealtimeClockLogger.class)
             .getLog()));
