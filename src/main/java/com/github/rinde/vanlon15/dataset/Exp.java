@@ -32,13 +32,15 @@ import com.github.rinde.rinsim.core.model.time.RealtimeClockLogger;
 import com.github.rinde.rinsim.core.model.time.RealtimeClockLogger.LogEntry;
 import com.github.rinde.rinsim.experiment.CommandLineProgress;
 import com.github.rinde.rinsim.experiment.Experiment;
+import com.github.rinde.rinsim.experiment.Experiment.SimArgs;
 import com.github.rinde.rinsim.experiment.Experiment.SimulationResult;
 import com.github.rinde.rinsim.experiment.ExperimentResults;
 import com.github.rinde.rinsim.experiment.MASConfiguration;
 import com.github.rinde.rinsim.experiment.PostProcessor;
+import com.github.rinde.rinsim.experiment.PostProcessors;
 import com.github.rinde.rinsim.io.FileProvider;
 import com.github.rinde.rinsim.pdptw.common.AddVehicleEvent;
-import com.github.rinde.rinsim.scenario.ScenarioController;
+import com.github.rinde.rinsim.pdptw.common.StatisticsDTO;
 import com.github.rinde.rinsim.scenario.gendreau06.Gendreau06ObjectiveFunction;
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Charsets;
@@ -66,7 +68,7 @@ public class Exp {
       .build(SUM)
       .computeLocal()
       .withRandomSeed(123)
-      .withThreads(12)
+      .withThreads(3)
       .repeat(1)
       // .setScenarioReader(
       // ScenarioIO.readerAdapter(ScenarioConverters.toRealtime()))
@@ -158,7 +160,7 @@ public class Exp {
     final Multimap<MASConfiguration, SimulationResult> groupedResults = LinkedHashMultimap
       .create();
     for (final SimulationResult sr : results.sortedResults()) {
-      groupedResults.put(sr.getMasConfiguration(), sr);
+      groupedResults.put(sr.getSimArgs().getMasConfig(), sr);
     }
 
     for (final MASConfiguration config : groupedResults.keySet()) {
@@ -183,10 +185,11 @@ public class Exp {
       }
 
       for (final SimulationResult sr : group) {
-        final String pc = sr.getScenario().getProblemClass().getId();
-        final String id = sr.getScenario().getProblemInstanceId();
+        final String pc = sr.getSimArgs().getScenario().getProblemClass()
+          .getId();
+        final String id = sr.getSimArgs().getScenario().getProblemInstanceId();
         final int numVehicles = FluentIterable
-          .from(sr.getScenario().getEvents())
+          .from(sr.getSimArgs().getScenario().getEvents())
           .filter(AddVehicleEvent.class).size();
         try {
           final String scenarioName = Joiner.on("-").join(pc, id);
@@ -202,15 +205,14 @@ public class Exp {
           final long urgencyMean = Long.parseLong(properties.get("urgency"));
           final double scale = Double.parseDouble(properties.get("scale"));
 
-          final double cost = SUM.computeCost(sr.getStats());
-          final double travelTime = SUM.travelTime(sr.getStats());
-          final double tardiness = SUM.tardiness(sr.getStats());
-          final double overTime = SUM.overTime(sr.getStats());
-          final boolean isValidResult = SUM.isValidResult(sr.getStats());
-          final long computationTime = sr.getStats().computationTime;
+          final ExperimentInfo info = (ExperimentInfo) sr.getResultObject();
 
-          final ExperimentInfo info = (ExperimentInfo) sr.getSimulationData()
-            .get();
+          final double cost = SUM.computeCost(info.getStats());
+          final double travelTime = SUM.travelTime(info.getStats());
+          final double tardiness = SUM.tardiness(info.getStats());
+          final double overTime = SUM.overTime(info.getStats());
+          final boolean isValidResult = SUM.isValidResult(info.getStats());
+          final long computationTime = info.getStats().computationTime;
 
           System.out.println("rt count: " + info.getRtCount());
           System.out.println("st count: " + info.getStCount());
@@ -221,7 +223,8 @@ public class Exp {
           final String line = Joiner.on(",")
             .appendTo(new StringBuilder(),
               asList(dynamism, urgencyMean, scale, cost, travelTime,
-                tardiness, overTime, isValidResult, scenarioName, sr.getSeed(),
+                tardiness, overTime, isValidResult, scenarioName,
+                sr.getSimArgs().getRandomSeed(),
                 computationTime, numVehicles, numOrders))
             .append(System.lineSeparator())
             .toString();
@@ -246,36 +249,39 @@ public class Exp {
 
     abstract long getStCount();
 
-    static ExperimentInfo create(List<LogEntry> log, long rt, long st) {
-      return new AutoValue_Exp_ExperimentInfo(log, rt, st);
+    abstract StatisticsDTO getStats();
+
+    static ExperimentInfo create(List<LogEntry> log, long rt, long st,
+      StatisticsDTO stats) {
+      return new AutoValue_Exp_ExperimentInfo(log, rt, st, stats);
     }
   }
 
   enum LogProcessor implements PostProcessor<ExperimentInfo> {
     INSTANCE {
       @Override
-      public ExperimentInfo collectResults(Simulator sim) {
+      public ExperimentInfo collectResults(Simulator sim, SimArgs args) {
         final RealtimeClockLogger logger = sim.getModelProvider()
           .getModel(RealtimeClockLogger.class);
+
+        final StatisticsDTO stats = PostProcessors.statisticsPostProcessor()
+          .collectResults(sim, args);
         return ExperimentInfo.create(logger.getLog(), logger.getRtCount(),
-          logger.getStCount());
+          logger.getStCount(), stats);
       }
 
       @Override
-      public void handleFailure(Exception e, Simulator sim) {
+      public FailureStrategy handleFailure(Throwable t, Simulator sim,
+        SimArgs args) {
 
-        final ScenarioController sc = sim.getModelProvider()
-          .getModel(ScenarioController.class);
-
-        System.out
-          .println(sc.getScenarioProblemClass() + " " + sc.getScenarioId());
-
-        System.out.println("***** RealtimeClock Log *****");
-        e.printStackTrace();
-        System.out.println(Joiner.on("\n").join(
-          sim.getModelProvider().getModel(RealtimeClockLogger.class)
-            .getLog()));
+        System.out.println("Fail: " + args);
+        t.printStackTrace();
+        // System.out.println(Joiner.on("\n").join(
+        // sim.getModelProvider().getModel(RealtimeClockLogger.class).getLog()));
+        System.out.println("RETRY!");
+        return FailureStrategy.RETRY;
       }
+
     }
   }
 }
