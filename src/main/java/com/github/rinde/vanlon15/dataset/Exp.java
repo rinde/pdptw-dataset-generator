@@ -271,11 +271,11 @@ public class Exp {
       }
 
       @Override
-      public FailureStrategy handleFailure(Throwable t, Simulator sim,
+      public FailureStrategy handleFailure(Exception e, Simulator sim,
         SimArgs args) {
 
         System.out.println("Fail: " + args);
-        t.printStackTrace();
+        e.printStackTrace();
         // System.out.println(Joiner.on("\n").join(
         // sim.getModelProvider().getModel(RealtimeClockLogger.class).getLog()));
         System.out.println("RETRY!");
