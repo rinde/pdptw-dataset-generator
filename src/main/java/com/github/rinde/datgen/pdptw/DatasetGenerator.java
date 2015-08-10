@@ -53,7 +53,6 @@ import com.github.rinde.rinsim.core.model.pdp.DefaultPDPModel;
 import com.github.rinde.rinsim.core.model.pdp.Parcel;
 import com.github.rinde.rinsim.core.model.pdp.TimeWindowPolicy.TimeWindowPolicies;
 import com.github.rinde.rinsim.core.model.road.RoadModelBuilders;
-import com.github.rinde.rinsim.core.model.time.RealtimeClockController.ClockMode;
 import com.github.rinde.rinsim.core.model.time.TimeModel;
 import com.github.rinde.rinsim.geom.Point;
 import com.github.rinde.rinsim.pdptw.common.PDPRoadModel;
@@ -110,13 +109,13 @@ import com.google.common.util.concurrent.MoreExecutors;
 public class DatasetGenerator {
   private static final long THREAD_SLEEP_DURATION = 100L;
   private static final long MS_IN_MIN = 60000L;
-  private static final long TICK_SIZE = 100L;
+  private static final long TICK_SIZE = 1000L;
   private static final double VEHICLE_SPEED_KMH = 50d;
 
   // n x n (km)
   private static final double AREA_WIDTH = 10;
 
-  private static final long SCENARIO_HOURS = 4L;
+  private static final long SCENARIO_HOURS = 8L;
   private static final long SCENARIO_LENGTH = SCENARIO_HOURS * 60 * 60 * 1000L;
   private static final int ORDERS_P_HOUR = 30;
   private static final int NUM_ORDERS = (int) (ORDERS_P_HOUR * SCENARIO_HOURS);
@@ -527,8 +526,6 @@ public class DatasetGenerator {
 
     // global
         .addModel(TimeModel.builder()
-            .withRealTime()
-            .withStartInClockMode(ClockMode.SIMULATED)
             .withTickLength(TICK_SIZE)
             .withTimeUnit(SI.MILLI(SI.SECOND)))
         .scenarioLength(scenarioLength)
@@ -633,7 +630,6 @@ public class DatasetGenerator {
     }
   }
 
-  // multi-threaded
   enum TimeSeriesType {
     POISSON_SINE, POISSON_HOMOGENOUS, NORMAL, UNIFORM;
   }
@@ -649,8 +645,7 @@ public class DatasetGenerator {
     static final int DEFAULT_NUM_INSTANCES = 1;
 
     static final ImmutableRangeMap<Double, TimeSeriesType> DYNAMISM_MAP =
-      ImmutableRangeMap
-          .<Double, TimeSeriesType>builder()
+      ImmutableRangeMap.<Double, TimeSeriesType>builder()
           .put(Range.closedOpen(0.000, DYNAMISM_T1),
             TimeSeriesType.POISSON_SINE)
           .put(Range.closedOpen(DYNAMISM_T1, DYNAMISM_T2),
