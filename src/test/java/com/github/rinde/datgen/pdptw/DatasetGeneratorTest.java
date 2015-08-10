@@ -52,9 +52,11 @@ import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
  */
 public class DatasetGeneratorTest {
 
+  /**
+   * Tests that illegal dynamism levels are handled.
+   */
   @Test
   public void testSetDynamismLevels() {
-
     boolean fail = false;
     try {
       DatasetGenerator.builder().setDynamismLevels(asList(.1, .11));
@@ -63,11 +65,13 @@ public class DatasetGeneratorTest {
       fail = true;
     }
     assertThat(fail).isTrue();
-
   }
 
+  /**
+   * Tests that two invocations produce the same dataset.
+   */
   @Test
-  public void test() {
+  public void consistencyTest() {
     final DatasetGenerator gen = DatasetGenerator.builder()
         .setDynamismLevels(asList(.1, .5, .6, .7))
         .setUrgencyLevels(asList(15L))
@@ -85,7 +89,6 @@ public class DatasetGeneratorTest {
 
     assertThat(scen).isEqualTo(scen2);
     assertThat(conv1).isEqualTo(conv2);
-
   }
 
   // @Test
