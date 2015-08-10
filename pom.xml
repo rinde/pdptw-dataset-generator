@@ -5,7 +5,7 @@
 	<artifactId>datgen</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
-	<name>datgen</name>
+	<name>PDPTW Dataset Generator</name>
 	<description></description>
 	<url>https://github.com/rinde/pdptw-dataset-generator</url>
 	<inceptionYear>2015</inceptionYear>
@@ -32,9 +32,7 @@
 
 	<build>
 		<pluginManagement>
-
 			<plugins>
-
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
 					<artifactId>lifecycle-mapping</artifactId>
@@ -81,7 +79,6 @@
 						</lifecycleMappingMetadata>
 					</configuration>
 				</plugin>
-
 			</plugins>
 		</pluginManagement>
 
@@ -219,8 +216,6 @@
 					<pushChanges>false</pushChanges>
 				</configuration>
 			</plugin>
-
-
 		</plugins>
 	</build>
 
@@ -249,7 +244,7 @@
 		<dependency>
 			<groupId>com.google.truth</groupId>
 			<artifactId>truth</artifactId>
-			<version>0.26</version>
+			<version>0.27</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
