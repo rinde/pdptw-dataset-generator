@@ -59,7 +59,7 @@ final class Dataset<T> implements Iterable<T> {
     return new Dataset<>(comparator);
   }
 
-  public void put(double dyn, long urg, double scl, T value) {
+  void put(double dyn, long urg, double scl, T value) {
     synchronized (data) {
       checkArgument(!valuesSet.contains(value), "Value %s already exists.",
         value);
@@ -77,20 +77,20 @@ final class Dataset<T> implements Iterable<T> {
     }
   }
 
-  public boolean containsEntry(double dyn, long urg, double scl, T value) {
+  boolean containsEntry(double dyn, long urg, double scl, T value) {
     return data.containsKey(dyn)
         && data.get(dyn).contains(urg, scl)
         && data.get(dyn).get(urg, scl).contains(value);
   }
 
-  public SortedSet<T> get(double dyn, long urg, double scl) {
+  SortedSet<T> get(double dyn, long urg, double scl) {
     if (!data.containsKey(dyn) || !data.get(dyn).contains(urg, scl)) {
       return ImmutableSortedSet.of();
     }
     return Collections.unmodifiableSortedSet(data.get(dyn).get(urg, scl));
   }
 
-  public int size() {
+  int size() {
     return valuesSet.size();
   }
 

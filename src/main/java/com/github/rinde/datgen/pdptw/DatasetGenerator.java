@@ -842,7 +842,7 @@ public final class DatasetGenerator {
     private final StochasticSupplier<Double> deliveryTWopening;
     private final RandomGenerator rng;
 
-    public CustomTimeWindowGenerator(long urg) {
+    CustomTimeWindowGenerator(long urg) {
       urgency = urg;
       pickupTWopening = StochasticSuppliers.uniformDouble(0d, 1d);
       deliveryTWlength = StochasticSuppliers.uniformDouble(0d, 1d);
