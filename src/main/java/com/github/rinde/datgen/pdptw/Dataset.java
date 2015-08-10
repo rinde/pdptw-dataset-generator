@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
+ * Copyright (C) 2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.vanlon15.generator;
+package com.github.rinde.datgen.pdptw;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -39,7 +39,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.RowSortedTable;
 import com.google.common.collect.TreeBasedTable;
 
-class Dataset<T> implements Iterable<T> {
+final class Dataset<T> implements Iterable<T> {
   Comparator<T> comparator;
   SortedMap<Double, RowSortedTable<Long, Double, SortedSet<T>>> data;
   Set<T> valuesSet;
@@ -52,7 +52,7 @@ class Dataset<T> implements Iterable<T> {
   }
 
   static <T extends Comparable<T>> Dataset<T> naturalOrder() {
-    return new Dataset<>(Ordering.<T> natural());
+    return new Dataset<>(Ordering.<T>natural());
   }
 
   static <T> Dataset<T> orderedBy(Comparator<T> comparator) {
@@ -64,14 +64,14 @@ class Dataset<T> implements Iterable<T> {
       checkArgument(!valuesSet.contains(value), "Value %s already exists.",
         value);
       if (!data.containsKey(dyn)) {
-        data.put(dyn, TreeBasedTable.<Long, Double, SortedSet<T>> create());
+        data.put(dyn, TreeBasedTable.<Long, Double, SortedSet<T>>create());
       }
       if (!data.get(dyn).contains(urg, scl)) {
         data.get(dyn).put(urg, scl, new TreeSet<>(comparator));
       }
 
       checkArgument(!data.get(dyn).get(urg, scl).contains(value),
-        "Value %s already exists.", value);
+        "At (%s,%s,%s) value %s already exists.", dyn, urg, scl, value);
       data.get(dyn).get(urg, scl).add(value);
       valuesSet.add(value);
     }
@@ -79,8 +79,8 @@ class Dataset<T> implements Iterable<T> {
 
   public boolean containsEntry(double dyn, long urg, double scl, T value) {
     return data.containsKey(dyn)
-      && data.get(dyn).contains(urg, scl)
-      && data.get(dyn).get(urg, scl).contains(value);
+        && data.get(dyn).contains(urg, scl)
+        && data.get(dyn).get(urg, scl).contains(value);
   }
 
   public SortedSet<T> get(double dyn, long urg, double scl) {
@@ -118,7 +118,7 @@ class Dataset<T> implements Iterable<T> {
   public Iterator<T> iterator() {
     final List<Iterator<T>> its = new ArrayList<>();
     for (final Entry<Double, RowSortedTable<Long, Double, SortedSet<T>>> entry : data
-      .entrySet()) {
+        .entrySet()) {
       for (final SortedSet<T> set : entry.getValue().values()) {
         its.add(set.iterator());
       }

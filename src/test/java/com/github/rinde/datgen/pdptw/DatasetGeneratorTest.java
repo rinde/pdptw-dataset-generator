@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
+ * Copyright (C) 2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.vanlon15.generator;
+package com.github.rinde.datgen.pdptw;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.Arrays.asList;
@@ -69,13 +69,13 @@ public class DatasetGeneratorTest {
   @Test
   public void test() {
     final DatasetGenerator gen = DatasetGenerator.builder()
-      .setDynamismLevels(asList(.1, .5, .6, .7))
-      .setUrgencyLevels(asList(15L))
-      .setScaleLevels(asList(1d))
-      .setNumInstances(1)
-      .setDatasetDir("files/test/dataset/")
-      // .setNumThreads(1)
-      .build();
+        .setDynamismLevels(asList(.1, .5, .6, .7))
+        .setUrgencyLevels(asList(15L))
+        .setScaleLevels(asList(1d))
+        .setNumInstances(1)
+        .setDatasetDir("files/test/dataset/")
+        // .setNumThreads(1)
+        .build();
 
     final Dataset<GeneratedScenario> scen = gen.doGenerate();
     final Dataset<GeneratedScenario> scen2 = gen.doGenerate();
@@ -91,7 +91,7 @@ public class DatasetGeneratorTest {
   // @Test
   public void test2() {
     try (final DirectoryStream<Path> directoryStream = Files
-      .newDirectoryStream(Paths.get("files/test/dataset/"), "*.scen")) {
+        .newDirectoryStream(Paths.get("files/test/dataset/"), "*.scen")) {
 
       for (final Path path : directoryStream) {
         System.out.println(path);
@@ -127,33 +127,33 @@ public class DatasetGeneratorTest {
     }
     final ObjectiveFunction objFunc = Gendreau06ObjectiveFunction.instance();
     Experiment
-      .build(Gendreau06ObjectiveFunction.instance())
-      .addScenario(scen)
-      .addConfiguration(MASConfiguration.pdptwBuilder()
-        .addEventHandler(AddVehicleEvent.class, new VehicleHandler(
-          SolverRoutePlanner.supplier(
-            CheapestInsertionHeuristic.supplier(objFunc)),
-          SolverBidder.supplier(objFunc,
-            CheapestInsertionHeuristic.supplier(objFunc))))
-        .addModel(AuctionCommModel.builder())
-        .addModel(SolverModel.builder())
-        .build())
-      .withThreads(1)
-      .showGui(
-        // schema.add(Vehicle.class, SWT.COLOR_RED);
-        // schema.add(Depot.class, SWT.COLOR_CYAN);
-        // schema.add(Parcel.class, SWT.COLOR_BLUE);
-        View.builder()
-          .with(PlaneRoadModelRenderer.builder())
-          .with(RoadUserRenderer.builder()
+        .build(Gendreau06ObjectiveFunction.instance())
+        .addScenario(scen)
+        .addConfiguration(MASConfiguration.pdptwBuilder()
+            .addEventHandler(AddVehicleEvent.class, new VehicleHandler(
+                SolverRoutePlanner.supplier(
+                  CheapestInsertionHeuristic.supplier(objFunc)),
+                SolverBidder.supplier(objFunc,
+                  CheapestInsertionHeuristic.supplier(objFunc))))
+            .addModel(AuctionCommModel.builder())
+            .addModel(SolverModel.builder())
+            .build())
+        .withThreads(1)
+        .showGui(
+          // schema.add(Vehicle.class, SWT.COLOR_RED);
+          // schema.add(Depot.class, SWT.COLOR_CYAN);
+          // schema.add(Parcel.class, SWT.COLOR_BLUE);
+          View.builder()
+              .with(PlaneRoadModelRenderer.builder())
+              .with(RoadUserRenderer.builder()
     // .withColorAssociation(Vehicle.class, SWT.COLOR_RED)
     )
-          .with(PDPModelRenderer.builder())
-          .with(TimeLinePanel.builder())
-          .withTitleAppendix(fileName)
-          .withAutoPlay()
-          .withAutoClose()
-          .withSpeedUp(80))
-      .perform();
+              .with(PDPModelRenderer.builder())
+              .with(TimeLinePanel.builder())
+              .withTitleAppendix(fileName)
+              .withAutoPlay()
+              .withAutoClose()
+              .withSpeedUp(80))
+        .perform();
   }
 }

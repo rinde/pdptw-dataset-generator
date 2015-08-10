@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
+ * Copyright (C) 2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.vanlon15.generator;
+package com.github.rinde.datgen.pdptw;
 
 import java.util.concurrent.Callable;
 
@@ -23,15 +23,17 @@ import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 
+import com.github.rinde.datgen.pdptw.DatasetGenerator.IdSeed;
 import com.github.rinde.rinsim.pdptw.common.AddParcelEvent;
 import com.github.rinde.rinsim.scenario.Scenario;
 import com.github.rinde.rinsim.scenario.generator.ScenarioGenerator;
 import com.github.rinde.rinsim.scenario.measure.Metrics;
-import com.github.rinde.vanlon15.generator.DatasetGenerator.IdSeed;
 import com.google.auto.value.AutoValue;
 
 @AutoValue
 abstract class ScenarioCreator implements Callable<GeneratedScenario> {
+
+  static final double URGENCY_THRESHOLD = 0.01;
 
   public abstract long getId();
 
@@ -53,8 +55,8 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
     // check that urgency matches expected urgency
     final StatisticalSummary urgency = Metrics.measureUrgency(scen);
     final long expectedUrgency = getSettings().getUrgency();
-    if (!(Math.abs(urgency.getMean() - expectedUrgency) < 0.01
-    && urgency.getStandardDeviation() < 0.01)) {
+    if (!(Math.abs(urgency.getMean() - expectedUrgency) < URGENCY_THRESHOLD
+        && urgency.getStandardDeviation() < URGENCY_THRESHOLD)) {
       return null;
     }
 
@@ -80,7 +82,7 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
   }
 
   static ScenarioCreator create(IdSeed is, GeneratorSettings set,
-    ScenarioGenerator gen) {
+      ScenarioGenerator gen) {
     return new AutoValue_ScenarioCreator(is.getId(), is.getSeed(), set, gen);
   }
 }

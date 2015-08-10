@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
+ * Copyright (C) 2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.rinde.vanlon15.generator;
+package com.github.rinde.datgen.pdptw;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
@@ -48,8 +48,8 @@ abstract class GeneratedScenario implements Comparable<GeneratedScenario> {
   }
 
   static GeneratedScenario create(Scenario s, GeneratorSettings settings,
-    long id, long seed, double dynBin, double actDyn) {
+      long id, long seed, double dynBin, double actDyn) {
     return new AutoValue_GeneratedScenario(s, settings, id, seed, dynBin,
-      actDyn);
+        actDyn);
   }
 }
