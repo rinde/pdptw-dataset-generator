@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.rinde</groupId>
 	<artifactId>datgen</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 
 	<name>PDPTW Dataset Generator</name>
 	<description></description>
@@ -26,8 +26,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<rinsim.version>4.0.0-SNAPSHOT</rinsim.version>
-		<rinlog.version>2.0.0-SNAPSHOT</rinlog.version>
+		<rinsim.version>4.0.0</rinsim.version>
+		<rinlog.version>2.0.0</rinlog.version>
 	</properties>
 
 	<build>
