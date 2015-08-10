@@ -109,7 +109,7 @@ import com.google.common.util.concurrent.MoreExecutors;
  */
 public class DatasetGenerator {
   private static final long THREAD_SLEEP_DURATION = 100L;
-
+  private static final long MS_IN_MIN = 60000L;
   private static final long TICK_SIZE = 100L;
   private static final double VEHICLE_SPEED_KMH = 50d;
 
@@ -133,7 +133,6 @@ public class DatasetGenerator {
   private static final long INTENSITY_PERIOD = 60 * 60 * 1000L;
 
   // These parameters influence the dynamism selection settings
-  private static final double DYN_STEP_SIZE = 0.05;
   private static final double DYN_BANDWIDTH = 0.01;
   // number of digits
   private static final double DYN_PRECISION = 2;
@@ -253,16 +252,15 @@ public class DatasetGenerator {
       try {
         Thread.sleep(THREAD_SLEEP_DURATION);
       } catch (final InterruptedException e) {
-        e.printStackTrace();
+        throw new IllegalStateException(e);
       }
     }
 
-    System.out.println("STOPPING");
     service.shutdown();
     try {
       service.awaitTermination(1L, TimeUnit.HOURS);
     } catch (final InterruptedException e) {
-      e.printStackTrace();
+      throw new IllegalStateException(e);
     }
 
     return dataset;
@@ -275,7 +273,7 @@ public class DatasetGenerator {
       final GeneratorSettings settings = gs.getSettings();
 
       final double dyn = gs.getDynamismBin();
-      final long urg = settings.getUrgency() / 60000;
+      final long urg = settings.getUrgency() / MS_IN_MIN;
       final double scl = settings.getScale();
 
       final int cur = data.get(dyn, urg, scl).size();
@@ -317,7 +315,7 @@ public class DatasetGenerator {
         new File(filePath.toString() + ".scen").toPath());
 
     } catch (final IOException e) {
-      e.printStackTrace();
+      throw new IllegalStateException(e);
     }
   }
 
@@ -338,8 +336,6 @@ public class DatasetGenerator {
         .put("urgency", pc.getUrgency())
         .put("scale", pc.getScale())
         .put("random_seed", seed)
-        // .put("urgency_mean", urgency.getMean())
-        // .put("urgency_sd", urgency.getStandardDeviation())
         .put("creation_date", formatter.print(System.currentTimeMillis()))
         .put("creator", System.getProperty("user.name"))
         .put("day_length", settings.getDayLength())
@@ -376,7 +372,6 @@ public class DatasetGenerator {
       final Map<GeneratorSettings, IdSeedGenerator> rngMap,
       final AtomicLong datasetSize) {
 
-    // System.out.println(datasetSize);
     if (service.isShutdown()) {
       return;
     }
@@ -552,16 +547,7 @@ public class DatasetGenerator {
               .deliveryDurations(constant(DELIVERY_DURATION))
               .neededCapacities(constant(0))
               .locations(lg)
-              .timeWindows(new CustomTimeWindowGenerator(urgency)
-    // TimeWindows.builder()
-    // .pickupUrgency(constant(urgency))
-    // // .pickupTimeWindowLength(StochasticSuppliers.uniformLong(5
-    // // * 60 * 1000L,))
-    // .deliveryOpening(constant(0L))
-    // .minDeliveryLength(constant(10 * 60 * 1000L))
-    // .deliveryLengthFactor(constant(3d))
-    // .build()
-    )
+              .timeWindows(new CustomTimeWindowGenerator(urgency))
               .build())
 
     // vehicles
@@ -863,45 +849,6 @@ public class DatasetGenerator {
 
       final long latestDelivery = endTime - deliveryToDepotTT
           - parcelBuilder.getDeliveryDuration();
-
-      // final long minDeliveryTWlength = MINIMAL_DELIVERY_TW_LENGTH;
-      // // Math
-      // // .max(MINIMAL_DELIVERY_TW_LENGTH,
-      // // pickupTW.end + parcelBuilder.getPickupDuration()
-      // // + pickupToDeliveryTT);
-      // final long maxDeliveryTWlength = latestDelivery - minDeliveryOpening;
-      //
-      // double factor = maxDeliveryTWlength - minDeliveryTWlength;
-      // if (factor < 0d) {
-      // factor = 0;
-      // }
-      // long deliveryTimeWindowLength = minDeliveryTWlength
-      // + DoubleMath.roundToLong(deliveryTWlength.get(rng.nextLong())
-      // * factor, RoundingMode.HALF_UP);
-      //
-      // // delivery TW may not close before this time:
-      // final long minDeliveryClosing = pickupTW.end
-      // + parcelBuilder.getPickupDuration() + pickupToDeliveryTT;
-      //
-      // if (minDeliveryOpening < minDeliveryClosing - deliveryTimeWindowLength)
-      // {
-      // minDeliveryOpening = minDeliveryClosing - deliveryTimeWindowLength;
-      // }
-      //
-      // final long deliveryOpening;
-      // if (deliveryTimeWindowLength >= maxDeliveryTWlength) {
-      // deliveryOpening = minDeliveryOpening;
-      // deliveryTimeWindowLength = maxDeliveryTWlength;
-      // } else {
-      // deliveryOpening = minDeliveryOpening
-      // + DoubleMath.roundToLong(deliveryTWopening.get(rng.nextLong())
-      // * (maxDeliveryTWlength - deliveryTimeWindowLength),
-      // RoundingMode.HALF_UP);
-      // }
-      //
-      // if (deliveryOpening + deliveryTimeWindowLength > latestDelivery) {
-      // deliveryTimeWindowLength = latestDelivery - deliveryOpening;
-      // }
 
       final TimeWindow deliveryTW = TimeWindow.create(deliveryOpening,
         deliveryClosing);
