@@ -54,6 +54,7 @@ import com.github.rinde.rinsim.core.model.pdp.DefaultPDPModel;
 import com.github.rinde.rinsim.core.model.pdp.Parcel;
 import com.github.rinde.rinsim.core.model.pdp.TimeWindowPolicy.TimeWindowPolicies;
 import com.github.rinde.rinsim.core.model.road.RoadModelBuilders;
+import com.github.rinde.rinsim.core.model.time.RealtimeClockController.ClockMode;
 import com.github.rinde.rinsim.core.model.time.TimeModel;
 import com.github.rinde.rinsim.geom.Point;
 import com.github.rinde.rinsim.pdptw.common.PDPRoadModel;
@@ -497,7 +498,7 @@ public final class DatasetGenerator {
       return TimeSeries.homogenousPoisson(officeHoursLength, numOrders);
     } else if (type == TimeSeriesType.NORMAL) {
       props.put(TIME_SERIES, "normal distribution");
-      final double mean = officeHoursLength / numOrders;
+      final double mean = officeHoursLength / (double) numOrders;
       final double sd = 2.4 * 60 * 1000;
       props.put("time_series.normal", normal(mean, sd));
       props.put("time_series.normal.truncated", tString);
@@ -537,6 +538,8 @@ public final class DatasetGenerator {
 
     // global
         .addModel(TimeModel.builder()
+            .withRealTime()
+            .withStartInClockMode(ClockMode.SIMULATED)
             .withTickLength(TICK_SIZE)
             .withTimeUnit(SI.MILLI(SI.SECOND)))
         .scenarioLength(scenarioLength)
@@ -545,8 +548,7 @@ public final class DatasetGenerator {
           StatsStopConditions.timeOutEvent()))
         // parcels
         .parcels(
-          Parcels
-              .builder()
+          Parcels.builder()
               .announceTimes(
                 TimeSeries.filter(tsg, TimeSeries.numEventsPredicate(
                   DoubleMath.roundToInt(NUM_ORDERS * scale,
