@@ -512,7 +512,7 @@ public final class DatasetGenerator {
       final double ub = 15d * 60 * 1000;
 
       props.put("time_series.uniform.mean",
-        Double.toString(officeHoursLength / numOrders));
+        Double.toString(officeHoursLength / (double) numOrders));
       props.put("time_series.uniform.truncated", tString);
       props.put("time_series.uniform.max_dev", normal(mean, std));
       props.put("time_series.uniform.max_dev.lower_bound", Double.toString(lb));
