@@ -126,7 +126,7 @@ public final class DatasetGenerator {
   // n x n (km)
   private static final double AREA_WIDTH = 10;
 
-  private static final long SCENARIO_HOURS = 8L;
+  private static final long SCENARIO_HOURS = 4L;
   private static final long SCENARIO_LENGTH = SCENARIO_HOURS * 60 * 60 * 1000L;
   private static final int ORDERS_P_HOUR = 30;
   private static final int NUM_ORDERS = (int) (ORDERS_P_HOUR * SCENARIO_HOURS);
