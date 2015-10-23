@@ -27,8 +27,9 @@ import java.nio.file.Paths;
 
 import org.junit.Test;
 
-import com.github.rinde.logistics.pdptw.mas.VehicleHandler;
+import com.github.rinde.logistics.pdptw.mas.TruckFactory;
 import com.github.rinde.logistics.pdptw.mas.comm.AuctionCommModel;
+import com.github.rinde.logistics.pdptw.mas.comm.DoubleBid;
 import com.github.rinde.logistics.pdptw.mas.comm.SolverBidder;
 import com.github.rinde.logistics.pdptw.mas.route.SolverRoutePlanner;
 import com.github.rinde.logistics.pdptw.solver.CheapestInsertionHeuristic;
@@ -133,12 +134,13 @@ public class DatasetGeneratorTest {
         .build(Gendreau06ObjectiveFunction.instance())
         .addScenario(scen)
         .addConfiguration(MASConfiguration.pdptwBuilder()
-            .addEventHandler(AddVehicleEvent.class, new VehicleHandler(
-                SolverRoutePlanner.supplier(
-                  CheapestInsertionHeuristic.supplier(objFunc)),
-                SolverBidder.supplier(objFunc,
-                  CheapestInsertionHeuristic.supplier(objFunc))))
-            .addModel(AuctionCommModel.builder())
+            .addEventHandler(AddVehicleEvent.class, TruckFactory.builder()
+                .setRoutePlanner(SolverRoutePlanner.supplier(
+                  CheapestInsertionHeuristic.supplier(objFunc)))
+                .setCommunicator(SolverBidder.supplier(objFunc,
+                  CheapestInsertionHeuristic.supplier(objFunc)))
+                .build())
+            .addModel(AuctionCommModel.builder(DoubleBid.class))
             .addModel(SolverModel.builder())
             .build())
         .withThreads(1)
