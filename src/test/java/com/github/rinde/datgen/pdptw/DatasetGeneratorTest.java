@@ -27,7 +27,7 @@ import java.nio.file.Paths;
 
 import org.junit.Test;
 
-import com.github.rinde.logistics.pdptw.mas.TruckFactory;
+import com.github.rinde.logistics.pdptw.mas.TruckFactory.DefaultTruckFactory;
 import com.github.rinde.logistics.pdptw.mas.comm.AuctionCommModel;
 import com.github.rinde.logistics.pdptw.mas.comm.DoubleBid;
 import com.github.rinde.logistics.pdptw.mas.comm.SolverBidder;
@@ -134,12 +134,13 @@ public class DatasetGeneratorTest {
         .build(Gendreau06ObjectiveFunction.instance())
         .addScenario(scen)
         .addConfiguration(MASConfiguration.pdptwBuilder()
-            .addEventHandler(AddVehicleEvent.class, TruckFactory.builder()
-                .setRoutePlanner(SolverRoutePlanner.supplier(
-                  CheapestInsertionHeuristic.supplier(objFunc)))
-                .setCommunicator(SolverBidder.supplier(objFunc,
-                  CheapestInsertionHeuristic.supplier(objFunc)))
-                .build())
+            .addEventHandler(AddVehicleEvent.class,
+              DefaultTruckFactory.builder()
+                  .setRoutePlanner(SolverRoutePlanner.supplier(
+                    CheapestInsertionHeuristic.supplier(objFunc)))
+                  .setCommunicator(SolverBidder.supplier(objFunc,
+                    CheapestInsertionHeuristic.supplier(objFunc)))
+                  .build())
             .addModel(AuctionCommModel.builder(DoubleBid.class))
             .addModel(SolverModel.builder())
             .build())
