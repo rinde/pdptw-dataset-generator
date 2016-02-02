@@ -79,8 +79,8 @@ final class Dataset<T> implements Iterable<T> {
 
   boolean containsEntry(double dyn, long urg, double scl, T value) {
     return data.containsKey(dyn)
-        && data.get(dyn).contains(urg, scl)
-        && data.get(dyn).get(urg, scl).contains(value);
+      && data.get(dyn).contains(urg, scl)
+      && data.get(dyn).get(urg, scl).contains(value);
   }
 
   SortedSet<T> get(double dyn, long urg, double scl) {
@@ -118,7 +118,7 @@ final class Dataset<T> implements Iterable<T> {
   public Iterator<T> iterator() {
     final List<Iterator<T>> its = new ArrayList<>();
     for (final Entry<Double, RowSortedTable<Long, Double, SortedSet<T>>> entry : data
-        .entrySet()) {
+      .entrySet()) {
       for (final SortedSet<T> set : entry.getValue().values()) {
         its.add(set.iterator());
       }

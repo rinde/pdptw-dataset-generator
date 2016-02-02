@@ -56,7 +56,7 @@ abstract class ScenarioCreator implements Callable<GeneratedScenario> {
     final StatisticalSummary urgency = Metrics.measureUrgency(scen);
     final long expectedUrgency = getSettings().getUrgency();
     if (!(Math.abs(urgency.getMean() - expectedUrgency) < URGENCY_THRESHOLD
-        && urgency.getStandardDeviation() < URGENCY_THRESHOLD)) {
+      && urgency.getStandardDeviation() < URGENCY_THRESHOLD)) {
       return null;
     }
 

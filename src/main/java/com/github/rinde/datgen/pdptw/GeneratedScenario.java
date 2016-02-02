@@ -50,6 +50,6 @@ abstract class GeneratedScenario implements Comparable<GeneratedScenario> {
   static GeneratedScenario create(Scenario s, GeneratorSettings settings,
       long id, long seed, double dynBin, double actDyn) {
     return new AutoValue_GeneratedScenario(s, settings, id, seed, dynBin,
-        actDyn);
+      actDyn);
   }
 }

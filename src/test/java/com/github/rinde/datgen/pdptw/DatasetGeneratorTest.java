@@ -74,13 +74,13 @@ public class DatasetGeneratorTest {
   @Test
   public void consistencyTest() {
     final DatasetGenerator gen = DatasetGenerator.builder()
-        .setDynamismLevels(asList(.1, .5, .6, .7))
-        .setUrgencyLevels(asList(15L))
-        .setScaleLevels(asList(1d))
-        .setNumInstances(1)
-        .setDatasetDir("files/test/dataset/")
-        // .setNumThreads(1)
-        .build();
+      .setDynamismLevels(asList(.1, .5, .6, .7))
+      .setUrgencyLevels(asList(15L))
+      .setScaleLevels(asList(1d))
+      .setNumInstances(1)
+      .setDatasetDir("files/test/dataset/")
+      // .setNumThreads(1)
+      .build();
 
     final Dataset<GeneratedScenario> scen = gen.doGenerate();
     final Dataset<GeneratedScenario> scen2 = gen.doGenerate();
@@ -95,7 +95,7 @@ public class DatasetGeneratorTest {
   // @Test
   public void test2() {
     try (final DirectoryStream<Path> directoryStream = Files
-        .newDirectoryStream(Paths.get("files/test/dataset/"), "*.scen")) {
+      .newDirectoryStream(Paths.get("files/test/dataset/"), "*.scen")) {
 
       for (final Path path : directoryStream) {
         System.out.println(path);
@@ -131,35 +131,35 @@ public class DatasetGeneratorTest {
     }
     final ObjectiveFunction objFunc = Gendreau06ObjectiveFunction.instance();
     Experiment
-        .build(Gendreau06ObjectiveFunction.instance())
-        .addScenario(scen)
-        .addConfiguration(MASConfiguration.pdptwBuilder()
-            .addEventHandler(AddVehicleEvent.class,
-              DefaultTruckFactory.builder()
-                  .setRoutePlanner(SolverRoutePlanner.supplier(
-                    CheapestInsertionHeuristic.supplier(objFunc)))
-                  .setCommunicator(SolverBidder.supplier(objFunc,
-                    CheapestInsertionHeuristic.supplier(objFunc)))
-                  .build())
-            .addModel(AuctionCommModel.builder(DoubleBid.class))
-            .addModel(SolverModel.builder())
+      .build(Gendreau06ObjectiveFunction.instance())
+      .addScenario(scen)
+      .addConfiguration(MASConfiguration.pdptwBuilder()
+        .addEventHandler(AddVehicleEvent.class,
+          DefaultTruckFactory.builder()
+            .setRoutePlanner(SolverRoutePlanner.supplier(
+              CheapestInsertionHeuristic.supplier(objFunc)))
+            .setCommunicator(SolverBidder.supplier(objFunc,
+              CheapestInsertionHeuristic.supplier(objFunc)))
             .build())
-        .withThreads(1)
-        .showGui(
-          // schema.add(Vehicle.class, SWT.COLOR_RED);
-          // schema.add(Depot.class, SWT.COLOR_CYAN);
-          // schema.add(Parcel.class, SWT.COLOR_BLUE);
-          View.builder()
-              .with(PlaneRoadModelRenderer.builder())
-              .with(RoadUserRenderer.builder()
+        .addModel(AuctionCommModel.builder(DoubleBid.class))
+        .addModel(SolverModel.builder())
+        .build())
+      .withThreads(1)
+      .showGui(
+        // schema.add(Vehicle.class, SWT.COLOR_RED);
+        // schema.add(Depot.class, SWT.COLOR_CYAN);
+        // schema.add(Parcel.class, SWT.COLOR_BLUE);
+        View.builder()
+          .with(PlaneRoadModelRenderer.builder())
+          .with(RoadUserRenderer.builder()
     // .withColorAssociation(Vehicle.class, SWT.COLOR_RED)
     )
-              .with(PDPModelRenderer.builder())
-              .with(TimeLinePanel.builder())
-              .withTitleAppendix(fileName)
-              .withAutoPlay()
-              .withAutoClose()
-              .withSpeedUp(80))
-        .perform();
+          .with(PDPModelRenderer.builder())
+          .with(TimeLinePanel.builder())
+          .withTitleAppendix(fileName)
+          .withAutoPlay()
+          .withAutoClose()
+          .withSpeedUp(80))
+      .perform();
   }
 }
