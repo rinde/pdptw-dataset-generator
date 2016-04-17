@@ -130,8 +130,7 @@ public class DatasetGeneratorTest {
       throw new IllegalStateException(e);
     }
     final ObjectiveFunction objFunc = Gendreau06ObjectiveFunction.instance();
-    Experiment
-      .build(Gendreau06ObjectiveFunction.instance())
+    Experiment.builder()
       .addScenario(scen)
       .addConfiguration(MASConfiguration.pdptwBuilder()
         .addEventHandler(AddVehicleEvent.class,
