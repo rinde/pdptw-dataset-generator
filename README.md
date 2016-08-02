@@ -1,4 +1,4 @@
-# PDPTW Dataset Generator 1.1.0
+# PDPTW Dataset Generator 1.1.1-SNAPSHOT
 
 [![Javadocs](https://javadoc.io/badge/com.github.rinde/datgen.svg?color=red)](https://javadoc.io/doc/com.github.rinde/datgen)
 [![Build Status](https://travis-ci.org/rinde/pdptw-dataset-generator.svg)](https://travis-ci.org/rinde/pdptw-dataset-generator)
