@@ -120,16 +120,13 @@ import com.google.common.util.concurrent.MoreExecutors;
 public final class DatasetGenerator {
   private static final long THREAD_SLEEP_DURATION = 100L;
   private static final long MS_IN_MIN = 60000L;
+  private static final long MS_IN_H = 60 * MS_IN_MIN;
   private static final long TICK_SIZE = 1000L;
   private static final double VEHICLE_SPEED_KMH = 50d;
 
   // n x n (km)
   private static final double AREA_WIDTH = 10;
-
-  private static final long SCENARIO_HOURS = 4L;
-  private static final long SCENARIO_LENGTH = SCENARIO_HOURS * 60 * 60 * 1000L;
   private static final int ORDERS_P_HOUR = 30;
-  private static final int NUM_ORDERS = (int) (ORDERS_P_HOUR * SCENARIO_HOURS);
 
   private static final long HALF_DIAG_TT = 509117L;
   private static final long ONE_AND_HALF_DIAG_TT = 1527351L;
@@ -151,8 +148,12 @@ public final class DatasetGenerator {
 
   final Builder builder;
 
+  final int numOrdersPerScale;
+
   DatasetGenerator(Builder b) {
     builder = b;
+
+    numOrdersPerScale = (int) (ORDERS_P_HOUR * b.scenarioLengthHours);
   }
 
   /**
@@ -188,16 +189,18 @@ public final class DatasetGenerator {
           // it is defined as [0,officeHoursLength).
           final long officeHoursLength;
           if (urg < HALF_DIAG_TT) {
-            officeHoursLength = SCENARIO_LENGTH - TWO_DIAG_TT
+            officeHoursLength = builder.scenarioLengthMs
+              - TWO_DIAG_TT
               - PICKUP_DURATION
               - DELIVERY_DURATION;
           } else {
-            officeHoursLength = SCENARIO_LENGTH - urg
+            officeHoursLength = builder.scenarioLengthMs
+              - urg
               - ONE_AND_HALF_DIAG_TT
               - PICKUP_DURATION - DELIVERY_DURATION;
           }
 
-          final int numOrders = DoubleMath.roundToInt(scale * NUM_ORDERS,
+          final int numOrders = DoubleMath.roundToInt(scale * numOrdersPerScale,
             RoundingMode.UNNECESSARY);
 
           final ImmutableMap.Builder<String, String> props = ImmutableMap
@@ -216,11 +219,11 @@ public final class DatasetGenerator {
           }
 
           createTimeSeriesGenerator(dynLevel.getKey(), officeHoursLength,
-            numOrders, props);
+            numOrders, numOrdersPerScale, props);
 
           final GeneratorSettings set = GeneratorSettings
             .builder()
-            .setDayLength(SCENARIO_LENGTH)
+            .setDayLength(builder.scenarioLengthMs)
             .setOfficeHours(officeHoursLength)
             .setTimeSeriesType(dynLevel.getKey())
             .setDynamismRangeCenters(
@@ -242,9 +245,10 @@ public final class DatasetGenerator {
 
             final TimeSeriesGenerator tsg2 = createTimeSeriesGenerator(
               dynLevel.getKey(), officeHoursLength, numOrders,
-              ImmutableMap.<String, String>builder());
-            final ScenarioGenerator gen = createGenerator(SCENARIO_LENGTH,
-              urg, scale, tsg2, lg);
+              numOrdersPerScale, ImmutableMap.<String, String>builder());
+            final ScenarioGenerator gen = createGenerator(
+              builder.scenarioLengthMs, urg, scale, tsg2, lg,
+              numOrdersPerScale);
 
             jobs.add(ScenarioCreator.create(isg.next(), set, gen));
           }
@@ -464,7 +468,7 @@ public final class DatasetGenerator {
   }
 
   static TimeSeriesGenerator createTimeSeriesGenerator(TimeSeriesType type,
-      long officeHoursLength, int numOrders,
+      long officeHoursLength, int numOrders, int numOrdersPerScale,
       ImmutableMap.Builder<String, String> props) {
 
     final String tString = "t > 0";
@@ -494,7 +498,7 @@ public final class DatasetGenerator {
     } else if (type == TimeSeriesType.POISSON_HOMOGENOUS) {
       props.put(TIME_SERIES, "homogenous Poisson process");
       props.put("time_series.intensity",
-        Double.toString((double) NUM_ORDERS / (double) officeHoursLength));
+        Double.toString((double) numOrdersPerScale / officeHoursLength));
       return TimeSeries.homogenousPoisson(officeHoursLength, numOrders);
     } else if (type == TimeSeriesType.NORMAL) {
       props.put(TIME_SERIES, "normal distribution");
@@ -533,7 +537,7 @@ public final class DatasetGenerator {
 
   static ScenarioGenerator createGenerator(long scenarioLength,
       long urgency, double scale, TimeSeriesGenerator tsg,
-      LocationGenerator lg) {
+      LocationGenerator lg, int numOrdersPerScale) {
     return ScenarioGenerator.builder()
 
       // global
@@ -551,7 +555,7 @@ public final class DatasetGenerator {
         Parcels.builder()
           .announceTimes(
             TimeSeries.filter(tsg, TimeSeries.numEventsPredicate(
-              DoubleMath.roundToInt(NUM_ORDERS * scale,
+              DoubleMath.roundToInt(numOrdersPerScale * scale,
                 RoundingMode.UNNECESSARY))))
           .pickupDurations(constant(PICKUP_DURATION))
           .deliveryDurations(constant(DELIVERY_DURATION))
@@ -611,6 +615,9 @@ public final class DatasetGenerator {
     static final long DEFAULT_URG = 20L;
     static final double DEFAULT_SCL = 1d;
     static final int DEFAULT_NUM_INSTANCES = 1;
+    static final long DEFAULT_SCENARIO_HOURS = 4L;
+    static final long DEFAULT_SCENARIO_LENGTH =
+      DEFAULT_SCENARIO_HOURS * MS_IN_H;
 
     static final ImmutableRangeMap<Double, TimeSeriesType> DYNAMISM_MAP =
       ImmutableRangeMap.<Double, TimeSeriesType>builder()
@@ -631,6 +638,8 @@ public final class DatasetGenerator {
     int numInstances;
     int numThreads;
     Path datasetDir;
+    long scenarioLengthHours;
+    long scenarioLengthMs;
 
     Builder() {
       randomSeed = 0L;
@@ -643,6 +652,8 @@ public final class DatasetGenerator {
       numInstances = DEFAULT_NUM_INSTANCES;
       numThreads = Runtime.getRuntime().availableProcessors();
       datasetDir = Paths.get("/");
+      scenarioLengthHours = DEFAULT_SCENARIO_HOURS;
+      scenarioLengthMs = DEFAULT_SCENARIO_LENGTH;
     }
 
     /**
@@ -652,6 +663,17 @@ public final class DatasetGenerator {
      */
     public Builder setRandomSeed(long seed) {
       randomSeed = seed;
+      return this;
+    }
+
+    /**
+     * Sets the scenario length in hours.
+     * @param hours The length of the scenario.
+     * @return This, as per the builder pattern.
+     */
+    public Builder setScenarioLength(long hours) {
+      scenarioLengthHours = hours;
+      scenarioLengthMs = hours * MS_IN_H;
       return this;
     }
 
