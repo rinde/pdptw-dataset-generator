@@ -46,6 +46,7 @@ import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.PDPModelRenderer;
 import com.github.rinde.rinsim.ui.renderers.PlaneRoadModelRenderer;
 import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
+import com.github.rinde.rinsim.util.TimeWindow;
 
 /**
  * @author Rinde van Lon
@@ -104,6 +105,25 @@ public class DatasetGeneratorTest {
     } catch (final IOException ex) {
       ex.printStackTrace();
     }
+  }
+
+  @Test
+  public void testScenarioLength() {
+    final DatasetGenerator genDefault = DatasetGenerator.builder()
+      .build();
+    final DatasetGenerator gen2 = DatasetGenerator.builder()
+      .setScenarioLength(2)
+      .build();
+    final DatasetGenerator gen5 = DatasetGenerator.builder()
+      .setScenarioLength(5)
+      .build();
+
+    assertThat(genDefault.generate().next().getTimeWindow())
+      .isEqualTo(TimeWindow.create(0, 4 * 60 * 60 * 1000L));
+    assertThat(gen2.generate().next().getTimeWindow())
+      .isEqualTo(TimeWindow.create(0, 2 * 60 * 60 * 1000L));
+    assertThat(gen5.generate().next().getTimeWindow())
+      .isEqualTo(TimeWindow.create(0, 5 * 60 * 60 * 1000L));
   }
 
   static String toString(Dataset<GeneratedScenario> data) {
