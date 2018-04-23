@@ -181,11 +181,5 @@
 		<module name="TrailingComment" />
 		<module name="OuterTypeFilename" />
 		<module name="AvoidEscapedUnicodeCharacters" />
-
-		<!-- Enable suppression later -->
-		<module name="FileContentsHolder" />
 	</module>
-
-	<!-- Allow suppression via comments -->
-	<module name="SuppressionCommentFilter" />
 </module>

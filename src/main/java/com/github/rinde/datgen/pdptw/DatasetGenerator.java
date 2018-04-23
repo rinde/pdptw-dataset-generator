@@ -888,7 +888,7 @@ public final class DatasetGenerator {
         .getTravelTimeToNearestDepot(delivery);
 
       // compute range of possible openings
-      long pickupOpening;
+      final long pickupOpening;
       if (urgency > MINIMAL_PICKUP_TW_LENGTH) {
 
         // possible values range from 0 .. n
